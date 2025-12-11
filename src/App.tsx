@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import UeberUns from "./pages/UeberUns";
 import Termine from "./pages/Termine";
@@ -16,19 +17,21 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/ueber-uns" element={<UeberUns />} />
-          <Route path="/termine" element={<Termine />} />
-          <Route path="/galerie" element={<Galerie />} />
-          <Route path="/kontakt" element={<Kontakt />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/ueber-uns" element={<UeberUns />} />
+            <Route path="/termine" element={<Termine />} />
+            <Route path="/galerie" element={<Galerie />} />
+            <Route path="/kontakt" element={<Kontakt />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

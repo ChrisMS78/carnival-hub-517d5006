@@ -21,6 +21,7 @@ export type Database = {
           id: string
           pdf_name: string | null
           pdf_url: string | null
+          section_type: string | null
           sort_order: number | null
           title: string
           updated_at: string | null
@@ -31,6 +32,7 @@ export type Database = {
           id?: string
           pdf_name?: string | null
           pdf_url?: string | null
+          section_type?: string | null
           sort_order?: number | null
           title: string
           updated_at?: string | null
@@ -41,6 +43,7 @@ export type Database = {
           id?: string
           pdf_name?: string | null
           pdf_url?: string | null
+          section_type?: string | null
           sort_order?: number | null
           title?: string
           updated_at?: string | null
@@ -187,18 +190,21 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          is_active: boolean | null
         }
         Insert: {
           created_at?: string | null
           display_name?: string | null
           email?: string | null
           id: string
+          is_active?: boolean | null
         }
         Update: {
           created_at?: string | null
           display_name?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean | null
         }
         Relationships: []
       }
@@ -262,6 +268,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_user_active: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user" | "redakteur"

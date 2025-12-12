@@ -2,16 +2,17 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Calendar, Image, FileText, Mail, Home, Settings } from "lucide-react";
+import { LogOut, Calendar, Image, FileText, Mail, Home, Settings, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import EventsManager from "./EventsManager";
 import GalleryManager from "./GalleryManager";
 import AboutManager from "./AboutManager";
 import ContactManager from "./ContactManager";
 import SiteSettingsManager from "./SiteSettingsManager";
+import UserManager from "./UserManager";
 
 export default function AdminDashboard() {
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("events");
 
   const handleSignOut = async () => {
@@ -48,7 +49,7 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
             <TabsTrigger value="events" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               <span className="hidden sm:inline">Termine</span>
@@ -69,6 +70,12 @@ export default function AdminDashboard() {
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Einstellungen</span>
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Benutzer</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="events">
@@ -90,6 +97,12 @@ export default function AdminDashboard() {
           <TabsContent value="settings">
             <SiteSettingsManager />
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="users">
+              <UserManager />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>

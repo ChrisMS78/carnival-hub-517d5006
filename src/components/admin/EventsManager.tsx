@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Calendar, MapPin, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Calendar, MapPin, Clock, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
@@ -35,6 +35,7 @@ export default function EventsManager() {
     const { data, error } = await supabase
       .from("events")
       .select("*")
+      .order("sort_order", { ascending: true })
       .order("event_date", { ascending: true });
 
     if (error) {
@@ -43,6 +44,38 @@ export default function EventsManager() {
       setEvents(data || []);
     }
     setIsLoading(false);
+  };
+
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return;
+    const currentEvent = events[index];
+    const prevEvent = events[index - 1];
+    
+    const currentOrder = currentEvent.sort_order ?? index;
+    const prevOrder = prevEvent.sort_order ?? (index - 1);
+    
+    await Promise.all([
+      supabase.from("events").update({ sort_order: prevOrder }).eq("id", currentEvent.id),
+      supabase.from("events").update({ sort_order: currentOrder }).eq("id", prevEvent.id),
+    ]);
+    
+    fetchEvents();
+  };
+
+  const handleMoveDown = async (index: number) => {
+    if (index === events.length - 1) return;
+    const currentEvent = events[index];
+    const nextEvent = events[index + 1];
+    
+    const currentOrder = currentEvent.sort_order ?? index;
+    const nextOrder = nextEvent.sort_order ?? (index + 1);
+    
+    await Promise.all([
+      supabase.from("events").update({ sort_order: nextOrder }).eq("id", currentEvent.id),
+      supabase.from("events").update({ sort_order: currentOrder }).eq("id", nextEvent.id),
+    ]);
+    
+    fetchEvents();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -199,12 +232,18 @@ export default function EventsManager() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {events.map((event) => (
+          {events.map((event, index) => (
             <Card key={event.id}>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg">{event.title}</CardTitle>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => handleMoveUp(index)} disabled={index === 0}>
+                      <ArrowUp className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleMoveDown(index)} disabled={index === events.length - 1}>
+                      <ArrowDown className="w-4 h-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(event)}>
                       <Pencil className="w-4 h-4" />
                     </Button>

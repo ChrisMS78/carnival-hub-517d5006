@@ -46,6 +46,20 @@ export default function ContactManager() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase
+      .from("contact_submissions")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      toast.error("Fehler beim Löschen");
+    } else {
+      toast.success("Nachricht gelöscht");
+      fetchSubmissions();
+    }
+  };
+
   const unreadCount = submissions.filter((s) => !s.is_read).length;
 
   if (isLoading) {

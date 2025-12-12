@@ -55,15 +55,11 @@ export default function GalleryManager() {
   const handleAlbumMoveUp = async (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (index === 0) return;
-    const currentAlbum = albums[index];
-    const prevAlbum = albums[index - 1];
     
-    const currentOrder = currentAlbum.sort_order ?? index;
-    const prevOrder = prevAlbum.sort_order ?? (index - 1);
-    
+    // Use index-based values to ensure unique sort orders
     await Promise.all([
-      supabase.from("gallery_albums").update({ sort_order: prevOrder }).eq("id", currentAlbum.id),
-      supabase.from("gallery_albums").update({ sort_order: currentOrder }).eq("id", prevAlbum.id),
+      supabase.from("gallery_albums").update({ sort_order: index - 1 }).eq("id", albums[index].id),
+      supabase.from("gallery_albums").update({ sort_order: index }).eq("id", albums[index - 1].id),
     ]);
     
     fetchAlbums();
@@ -72,15 +68,11 @@ export default function GalleryManager() {
   const handleAlbumMoveDown = async (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (index === albums.length - 1) return;
-    const currentAlbum = albums[index];
-    const nextAlbum = albums[index + 1];
     
-    const currentOrder = currentAlbum.sort_order ?? index;
-    const nextOrder = nextAlbum.sort_order ?? (index + 1);
-    
+    // Use index-based values to ensure unique sort orders
     await Promise.all([
-      supabase.from("gallery_albums").update({ sort_order: nextOrder }).eq("id", currentAlbum.id),
-      supabase.from("gallery_albums").update({ sort_order: currentOrder }).eq("id", nextAlbum.id),
+      supabase.from("gallery_albums").update({ sort_order: index + 1 }).eq("id", albums[index].id),
+      supabase.from("gallery_albums").update({ sort_order: index }).eq("id", albums[index + 1].id),
     ]);
     
     fetchAlbums();
@@ -116,12 +108,27 @@ export default function GalleryManager() {
         fetchAlbums();
       }
     } else {
-      const { error } = await supabase.from("gallery_albums").insert([albumFormData]);
+      // New albums get sort_order -1 to appear first, then normalize all orders
+      const { error } = await supabase.from("gallery_albums").insert([{ ...albumFormData, sort_order: -1 }]);
 
       if (error) {
         toast.error("Fehler beim Erstellen");
       } else {
         toast.success("Album erstellt");
+        // Normalize sort orders after insert
+        const { data: allAlbums } = await supabase
+          .from("gallery_albums")
+          .select("id")
+          .order("sort_order", { ascending: true })
+          .order("event_date", { ascending: false });
+        
+        if (allAlbums) {
+          await Promise.all(
+            allAlbums.map((album, idx) =>
+              supabase.from("gallery_albums").update({ sort_order: idx }).eq("id", album.id)
+            )
+          );
+        }
         fetchAlbums();
       }
     }

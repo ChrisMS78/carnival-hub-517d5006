@@ -26,6 +26,7 @@ export default function Galerie() {
     const { data: albumsData, error: albumsError } = await supabase
       .from("gallery_albums")
       .select("*")
+      .order("sort_order", { ascending: true })
       .order("event_date", { ascending: false });
 
     if (albumsError) {

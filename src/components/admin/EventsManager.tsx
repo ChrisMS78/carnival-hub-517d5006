@@ -86,12 +86,27 @@ export default function EventsManager() {
         fetchEvents();
       }
     } else {
-      const { error } = await supabase.from("events").insert([formData]);
+      // New items get sort_order -1 to appear first, then normalize all orders
+      const { error } = await supabase.from("events").insert([{ ...formData, sort_order: -1 }]);
 
       if (error) {
         toast.error("Fehler beim Erstellen");
       } else {
         toast.success("Termin erstellt");
+        // Normalize sort orders after insert
+        const { data: allEvents } = await supabase
+          .from("events")
+          .select("id")
+          .order("sort_order", { ascending: true })
+          .order("event_date", { ascending: true });
+        
+        if (allEvents) {
+          await Promise.all(
+            allEvents.map((event, idx) =>
+              supabase.from("events").update({ sort_order: idx }).eq("id", event.id)
+            )
+          );
+        }
         fetchEvents();
       }
     }

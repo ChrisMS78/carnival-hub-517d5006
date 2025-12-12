@@ -1,17 +1,37 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Images } from "lucide-react";
-import gallery1 from "@/assets/gallery-1.jpg";
-import gallery2 from "@/assets/gallery-2.jpg";
-import gallery3 from "@/assets/gallery-3.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
-const demoImages = [
-  { id: "1", src: gallery1, alt: "Karneval Feier 1" },
-  { id: "2", src: gallery2, alt: "Karneval Feier 2" },
-  { id: "3", src: gallery3, alt: "Karneval Feier 3" },
-];
+type GalleryImage = Tables<"gallery_images">;
 
 export function GalleryPreview() {
+  const [images, setImages] = useState<GalleryImage[]>([]);
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      // Get the first album by sort_order, then get its first 3 images
+      const { data: albums } = await supabase
+        .from("gallery_albums")
+        .select("id")
+        .order("sort_order", { ascending: true })
+        .limit(1);
+
+      if (albums && albums.length > 0) {
+        const { data: imagesData } = await supabase
+          .from("gallery_images")
+          .select("*")
+          .eq("album_id", albums[0].id)
+          .order("sort_order", { ascending: true })
+          .limit(3);
+
+        if (imagesData) setImages(imagesData);
+      }
+    };
+    fetchImages();
+  }, []);
   return (
     <section className="py-20 md:py-28 bg-carnival-dark text-carnival-cream overflow-hidden">
       <div className="container mx-auto px-4">
@@ -28,21 +48,25 @@ export function GalleryPreview() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {demoImages.map((image, index) => (
-            <div
-              key={image.id}
-              className="group relative aspect-square rounded-2xl overflow-hidden"
-            >
-              <img
-                src={image.src}
-                alt={image.alt}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-carnival-dark/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </div>
-          ))}
-        </div>
+        {images.length === 0 ? (
+          <div className="text-center py-8 text-carnival-cream/70">Keine Bilder vorhanden</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            {images.map((image) => (
+              <div
+                key={image.id}
+                className="group relative aspect-square rounded-2xl overflow-hidden"
+              >
+                <img
+                  src={image.image_url}
+                  alt={image.caption || "Galerie Bild"}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-carnival-dark/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="text-center">
           <Link to="/galerie">

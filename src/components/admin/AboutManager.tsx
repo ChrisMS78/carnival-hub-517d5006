@@ -7,11 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash2, FileText, ArrowUp, ArrowDown, BookOpen, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, ArrowUp, ArrowDown, BookOpen, Download, Image } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
-type AboutContent = Tables<"about_content"> & { section_type?: string };
+type AboutContent = Tables<"about_content"> & { section_type?: string; image_url?: string | null };
 
 interface AboutManagerProps {
   sectionType?: "story" | "download";
@@ -30,6 +30,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
     sort_order: 0,
   });
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchContents();
@@ -57,6 +58,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
 
     let pdfUrl = editingContent?.pdf_url || null;
     let pdfName = editingContent?.pdf_name || null;
+    let imageUrl = editingContent?.image_url || null;
 
     // Upload PDF if selected
     if (pdfFile) {
@@ -81,10 +83,33 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
       pdfName = pdfFile.name;
     }
 
+    // Upload Image if selected
+    if (imageFile) {
+      const fileExt = imageFile.name.split(".").pop();
+      const fileName = `about/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("gallery")
+        .upload(fileName, imageFile);
+
+      if (uploadError) {
+        toast.error("Fehler beim Hochladen des Bildes");
+        setIsUploading(false);
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("gallery")
+        .getPublicUrl(fileName);
+
+      imageUrl = publicUrl;
+    }
+
     const dataToSave = {
       ...formData,
       pdf_url: pdfUrl,
       pdf_name: pdfName,
+      image_url: imageUrl,
       section_type: activeSection,
     };
 
@@ -172,6 +197,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
     setEditingContent(null);
     setFormData({ title: "", content: "", sort_order: 0 });
     setPdfFile(null);
+    setImageFile(null);
     setIsDialogOpen(false);
   };
 
@@ -217,6 +243,11 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
               </div>
             </CardHeader>
             <CardContent>
+              {content.image_url && (
+                <div className="mb-2">
+                  <img src={content.image_url} alt={content.title} className="w-full max-w-xs h-24 object-cover rounded" />
+                </div>
+              )}
               {content.content && (
                 <p className="text-sm text-muted-foreground line-clamp-3">{content.content}</p>
               )}
@@ -296,6 +327,21 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
                     value={formData.sort_order}
                     onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
                   />
+                </div>
+                <div>
+                  <Label htmlFor="image">Bild (optional)</Label>
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                    className="mt-2"
+                  />
+                  {editingContent?.image_url && !imageFile && (
+                    <div className="mt-2">
+                      <img src={editingContent.image_url} alt="Aktuelles Bild" className="w-32 h-20 object-cover rounded" />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="pdf">PDF-Dokument (optional)</Label>

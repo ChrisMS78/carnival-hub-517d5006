@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Calendar, MapPin, Clock, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Calendar, MapPin, Clock, ArrowUp, ArrowDown, Image, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
@@ -19,6 +19,8 @@ export default function EventsManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -72,11 +74,38 @@ export default function EventsManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsUploading(true);
+
+    let imageUrl = editingEvent?.image_url || null;
+
+    // Upload image if selected
+    if (imageFile) {
+      const fileExt = imageFile.name.split(".").pop();
+      const fileName = `events/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("gallery")
+        .upload(fileName, imageFile);
+
+      if (uploadError) {
+        toast.error("Fehler beim Hochladen des Bildes");
+        setIsUploading(false);
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("gallery")
+        .getPublicUrl(fileName);
+
+      imageUrl = publicUrl;
+    }
+
+    const dataToSave = { ...formData, image_url: imageUrl };
 
     if (editingEvent) {
       const { error } = await supabase
         .from("events")
-        .update(formData)
+        .update(dataToSave)
         .eq("id", editingEvent.id);
 
       if (error) {
@@ -87,7 +116,7 @@ export default function EventsManager() {
       }
     } else {
       // New items get sort_order -1 to appear first, then normalize all orders
-      const { error } = await supabase.from("events").insert([{ ...formData, sort_order: -1 }]);
+      const { error } = await supabase.from("events").insert([{ ...dataToSave, sort_order: -1 }]);
 
       if (error) {
         toast.error("Fehler beim Erstellen");
@@ -112,6 +141,7 @@ export default function EventsManager() {
     }
 
     resetForm();
+    setIsUploading(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -148,6 +178,7 @@ export default function EventsManager() {
       event_time: "",
       location: "",
     });
+    setImageFile(null);
     setIsDialogOpen(false);
   };
 
@@ -218,12 +249,27 @@ export default function EventsManager() {
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 />
               </div>
+              <div>
+                <Label htmlFor="image">Bild (optional)</Label>
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                  className="mt-2"
+                />
+                {editingEvent?.image_url && !imageFile && (
+                  <div className="mt-2">
+                    <img src={editingEvent.image_url} alt="Aktuelles Bild" className="w-32 h-20 object-cover rounded" />
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Abbrechen
                 </Button>
-                <Button type="submit">
-                  {editingEvent ? "Speichern" : "Erstellen"}
+                <Button type="submit" disabled={isUploading}>
+                  {isUploading ? "Speichern..." : (editingEvent ? "Speichern" : "Erstellen")}
                 </Button>
               </div>
             </form>
@@ -281,6 +327,11 @@ export default function EventsManager() {
                 </div>
                 {event.description && (
                   <p className="mt-2 text-sm">{event.description}</p>
+                )}
+                {event.image_url && (
+                  <div className="mt-2">
+                    <img src={event.image_url} alt={event.title} className="w-full max-w-xs h-24 object-cover rounded" />
+                  </div>
                 )}
               </CardContent>
             </Card>

@@ -48,15 +48,11 @@ export default function EventsManager() {
 
   const handleMoveUp = async (index: number) => {
     if (index === 0) return;
-    const currentEvent = events[index];
-    const prevEvent = events[index - 1];
     
-    const currentOrder = currentEvent.sort_order ?? index;
-    const prevOrder = prevEvent.sort_order ?? (index - 1);
-    
+    // Use index-based values to ensure unique sort orders
     await Promise.all([
-      supabase.from("events").update({ sort_order: prevOrder }).eq("id", currentEvent.id),
-      supabase.from("events").update({ sort_order: currentOrder }).eq("id", prevEvent.id),
+      supabase.from("events").update({ sort_order: index - 1 }).eq("id", events[index].id),
+      supabase.from("events").update({ sort_order: index }).eq("id", events[index - 1].id),
     ]);
     
     fetchEvents();
@@ -64,15 +60,11 @@ export default function EventsManager() {
 
   const handleMoveDown = async (index: number) => {
     if (index === events.length - 1) return;
-    const currentEvent = events[index];
-    const nextEvent = events[index + 1];
     
-    const currentOrder = currentEvent.sort_order ?? index;
-    const nextOrder = nextEvent.sort_order ?? (index + 1);
-    
+    // Use index-based values to ensure unique sort orders
     await Promise.all([
-      supabase.from("events").update({ sort_order: nextOrder }).eq("id", currentEvent.id),
-      supabase.from("events").update({ sort_order: currentOrder }).eq("id", nextEvent.id),
+      supabase.from("events").update({ sort_order: index + 1 }).eq("id", events[index].id),
+      supabase.from("events").update({ sort_order: index }).eq("id", events[index + 1].id),
     ]);
     
     fetchEvents();

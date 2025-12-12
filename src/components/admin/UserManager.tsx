@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, UserCheck, UserX } from "lucide-react";
+import { Plus, Trash2, UserCheck, UserX, Key } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -24,6 +24,9 @@ export default function UserManager() {
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [selectedUserForPassword, setSelectedUserForPassword] = useState<UserWithRole | null>(null);
+  const [newPassword, setNewPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -210,6 +213,45 @@ export default function UserManager() {
     setIsDialogOpen(false);
   };
 
+  const handleChangePassword = async () => {
+    if (!selectedUserForPassword || !newPassword) return;
+    
+    if (newPassword.length < 6) {
+      toast.error("Das Passwort muss mindestens 6 Zeichen haben");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke('update-user-password', {
+        body: { userId: selectedUserForPassword.id, newPassword },
+      });
+
+      if (response.error) {
+        toast.error(response.error.message || "Fehler beim Ändern des Passworts");
+      } else if (response.data?.error) {
+        toast.error(response.data.error);
+      } else {
+        toast.success("Passwort erfolgreich geändert");
+        setIsPasswordDialogOpen(false);
+        setSelectedUserForPassword(null);
+        setNewPassword("");
+      }
+    } catch (error) {
+      toast.error("Fehler beim Ändern des Passworts");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openPasswordDialog = (user: UserWithRole) => {
+    setSelectedUserForPassword(user);
+    setNewPassword("");
+    setIsPasswordDialogOpen(true);
+  };
+
   if (isLoading) {
     return <div className="flex justify-center p-8">Laden...</div>;
   }
@@ -332,6 +374,9 @@ export default function UserManager() {
                         Aktiv
                       </Label>
                     </div>
+                    <Button variant="ghost" size="sm" onClick={() => openPasswordDialog(user)} title="Passwort ändern">
+                      <Key className="w-4 h-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user)}>
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
@@ -342,6 +387,39 @@ export default function UserManager() {
           ))}
         </div>
       )}
+
+      {/* Password Change Dialog */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Passwort ändern</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Neues Passwort für <strong>{selectedUserForPassword?.display_name || selectedUserForPassword?.email}</strong>
+            </p>
+            <div>
+              <Label htmlFor="new-password">Neues Passwort</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mindestens 6 Zeichen"
+                minLength={6}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+                Abbrechen
+              </Button>
+              <Button onClick={handleChangePassword} disabled={isSubmitting || !newPassword}>
+                {isSubmitting ? "Speichern..." : "Passwort ändern"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

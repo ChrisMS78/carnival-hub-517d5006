@@ -49,7 +49,7 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-3'} lg:w-auto lg:inline-flex`}>
             <TabsTrigger value="events" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               <span className="hidden sm:inline">Termine</span>
@@ -62,19 +62,21 @@ export default function AdminDashboard() {
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">Über uns</span>
             </TabsTrigger>
-            <TabsTrigger value="contact" className="flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              <span className="hidden sm:inline">Nachrichten</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Einstellungen</span>
-            </TabsTrigger>
             {isAdmin && (
-              <TabsTrigger value="users" className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Benutzer</span>
-              </TabsTrigger>
+              <>
+                <TabsTrigger value="contact" className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  <span className="hidden sm:inline">Nachrichten</span>
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  <span className="hidden sm:inline">Einstellungen</span>
+                </TabsTrigger>
+                <TabsTrigger value="users" className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  <span className="hidden sm:inline">Benutzer</span>
+                </TabsTrigger>
+              </>
             )}
           </TabsList>
 
@@ -90,18 +92,20 @@ export default function AdminDashboard() {
             <AboutManager />
           </TabsContent>
 
-          <TabsContent value="contact">
-            <ContactManager />
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <SiteSettingsManager />
-          </TabsContent>
-
           {isAdmin && (
-            <TabsContent value="users">
-              <UserManager />
-            </TabsContent>
+            <>
+              <TabsContent value="contact">
+                <ContactManager />
+              </TabsContent>
+
+              <TabsContent value="settings">
+                <SiteSettingsManager />
+              </TabsContent>
+
+              <TabsContent value="users">
+                <UserManager />
+              </TabsContent>
+            </>
           )}
         </Tabs>
       </main>

@@ -1,7 +1,15 @@
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, Mail, MapPin, Phone } from "lucide-react";
+import { Facebook, Instagram, Mail, MapPin, Phone, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 export function Footer() {
+  const { user, hasBackendAccess, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+  };
+
   return (
     <footer className="bg-carnival-dark text-carnival-cream">
       <div className="container mx-auto px-4 py-12 md:py-16">
@@ -57,10 +65,21 @@ export function Footer() {
                   Kontakt
                 </Link>
               </li>
-              <li>
+              <li className="flex items-center gap-2 flex-wrap">
                 <Link to="/admin" className="text-carnival-cream/70 hover:text-carnival-cream transition-colors">
-                  Admin Login
+                  Verwaltung
                 </Link>
+                {user && hasBackendAccess && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-carnival-cream/70 hover:text-carnival-cream hover:bg-carnival-cream/10 p-1 h-auto"
+                  >
+                    <LogOut size={16} />
+                    <span className="ml-1 text-xs">Abmelden</span>
+                  </Button>
+                )}
               </li>
             </ul>
           </div>

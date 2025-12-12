@@ -19,6 +19,7 @@ export default function UeberUns() {
     "about_stat_members",
     "about_stat_years",
     "about_stat_events",
+    "about_show_stats",
   ]);
 
   useEffect(() => {
@@ -37,6 +38,8 @@ export default function UeberUns() {
   // Filter sections with and without PDFs
   const textSections = sections.filter((s) => !s.pdf_url);
   const documents = sections.filter((s) => s.pdf_url);
+
+  const showStats = settings.about_show_stats !== "false";
 
   const stats = [
     { icon: Users, value: settings.about_stat_members || "150+", label: "Mitglieder" },
@@ -61,23 +64,25 @@ export default function UeberUns() {
         </section>
 
         {/* Stats */}
-        <section className="py-16 bg-secondary">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {stats.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                    <stat.icon className="w-8 h-8 text-primary" />
+        {showStats && (
+          <section className="py-16 bg-secondary">
+            <div className="container mx-auto px-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {stats.map((stat) => (
+                  <div key={stat.label} className="text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                      <stat.icon className="w-8 h-8 text-primary" />
+                    </div>
+                    <div className="text-4xl font-display font-bold text-foreground mb-2">
+                      {stat.value}
+                    </div>
+                    <div className="text-muted-foreground">{stat.label}</div>
                   </div>
-                  <div className="text-4xl font-display font-bold text-foreground mb-2">
-                    {stat.value}
-                  </div>
-                  <div className="text-muted-foreground">{stat.label}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Content */}
         <section className="py-20">

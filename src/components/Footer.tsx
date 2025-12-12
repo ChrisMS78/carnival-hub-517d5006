@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
 export function Footer() {
-  const { user, hasBackendAccess, signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
   const handleLogout = async () => {
     await signOut();
@@ -69,7 +69,7 @@ export function Footer() {
                 <Link to="/admin" className="text-carnival-cream/70 hover:text-carnival-cream transition-colors">
                   Verwaltung
                 </Link>
-                {user && hasBackendAccess && (
+                {user && (
                   <Button
                     variant="ghost"
                     size="sm"

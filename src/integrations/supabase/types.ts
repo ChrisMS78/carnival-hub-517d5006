@@ -19,6 +19,7 @@ export type Database = {
           content: string | null
           created_at: string | null
           id: string
+          image_url: string | null
           pdf_name: string | null
           pdf_url: string | null
           section_type: string | null
@@ -30,6 +31,7 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string
+          image_url?: string | null
           pdf_name?: string | null
           pdf_url?: string | null
           section_type?: string | null
@@ -41,6 +43,7 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string
+          image_url?: string | null
           pdf_name?: string | null
           pdf_url?: string | null
           section_type?: string | null
@@ -183,6 +186,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      page_backgrounds: {
+        Row: {
+          background_url: string | null
+          created_at: string | null
+          id: string
+          page_key: string
+          page_label: string
+          updated_at: string | null
+        }
+        Insert: {
+          background_url?: string | null
+          created_at?: string | null
+          id?: string
+          page_key: string
+          page_label: string
+          updated_at?: string | null
+        }
+        Update: {
+          background_url?: string | null
+          created_at?: string | null
+          id?: string
+          page_key?: string
+          page_label?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {

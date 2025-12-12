@@ -80,15 +80,15 @@ export default function Admin() {
     return <AdminDashboard />;
   }
 
-  // If logged in but not admin
-  if (user && !isAdmin) {
+  // If logged in but no backend access (not admin or redakteur)
+  if (user && !hasBackendAccess) {
     return (
       <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-card rounded-2xl shadow-lg p-8 border border-border text-center">
-            <h2 className="text-xl font-bold text-foreground mb-4">Kein Admin-Zugang</h2>
+            <h2 className="text-xl font-bold text-foreground mb-4">Kein Zugang</h2>
             <p className="text-muted-foreground mb-6">
-              Ihr Konto hat keine Admin-Berechtigung. Kontaktieren Sie den Administrator.
+              Ihr Konto hat keine Berechtigung für den Admin-Bereich. Kontaktieren Sie den Administrator.
             </p>
             <Button onClick={() => window.location.href = "/"} variant="outline">
               Zurück zur Startseite

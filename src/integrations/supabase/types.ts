@@ -123,6 +123,7 @@ export type Database = {
           description: string | null
           event_date: string | null
           id: string
+          sort_order: number | null
           title: string
         }
         Insert: {
@@ -131,6 +132,7 @@ export type Database = {
           description?: string | null
           event_date?: string | null
           id?: string
+          sort_order?: number | null
           title: string
         }
         Update: {
@@ -139,6 +141,7 @@ export type Database = {
           description?: string | null
           event_date?: string | null
           id?: string
+          sort_order?: number | null
           title?: string
         }
         Relationships: []

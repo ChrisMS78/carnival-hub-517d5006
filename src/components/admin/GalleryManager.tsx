@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Image, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Image, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -41,6 +41,7 @@ export default function GalleryManager() {
     const { data, error } = await supabase
       .from("gallery_albums")
       .select("*")
+      .order("sort_order", { ascending: true })
       .order("event_date", { ascending: false });
 
     if (error) {
@@ -49,6 +50,40 @@ export default function GalleryManager() {
       setAlbums(data || []);
     }
     setIsLoading(false);
+  };
+
+  const handleAlbumMoveUp = async (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (index === 0) return;
+    const currentAlbum = albums[index];
+    const prevAlbum = albums[index - 1];
+    
+    const currentOrder = currentAlbum.sort_order ?? index;
+    const prevOrder = prevAlbum.sort_order ?? (index - 1);
+    
+    await Promise.all([
+      supabase.from("gallery_albums").update({ sort_order: prevOrder }).eq("id", currentAlbum.id),
+      supabase.from("gallery_albums").update({ sort_order: currentOrder }).eq("id", prevAlbum.id),
+    ]);
+    
+    fetchAlbums();
+  };
+
+  const handleAlbumMoveDown = async (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (index === albums.length - 1) return;
+    const currentAlbum = albums[index];
+    const nextAlbum = albums[index + 1];
+    
+    const currentOrder = currentAlbum.sort_order ?? index;
+    const nextOrder = nextAlbum.sort_order ?? (index + 1);
+    
+    await Promise.all([
+      supabase.from("gallery_albums").update({ sort_order: nextOrder }).eq("id", currentAlbum.id),
+      supabase.from("gallery_albums").update({ sort_order: currentOrder }).eq("id", nextAlbum.id),
+    ]);
+    
+    fetchAlbums();
   };
 
   const fetchImages = async (albumId: string) => {
@@ -258,7 +293,7 @@ export default function GalleryManager() {
               </CardContent>
             </Card>
           ) : (
-            albums.map((album) => (
+            albums.map((album, index) => (
               <Card
                 key={album.id}
                 className={`cursor-pointer transition-colors ${selectedAlbum?.id === album.id ? "border-primary" : ""}`}
@@ -268,6 +303,12 @@ export default function GalleryManager() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm">{album.title}</CardTitle>
                     <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" onClick={(e) => handleAlbumMoveUp(index, e)} disabled={index === 0}>
+                        <ArrowUp className="w-3 h-3" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={(e) => handleAlbumMoveDown(index, e)} disabled={index === albums.length - 1}>
+                        <ArrowDown className="w-3 h-3" />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEditAlbum(album); }}>
                         <Pencil className="w-3 h-3" />
                       </Button>

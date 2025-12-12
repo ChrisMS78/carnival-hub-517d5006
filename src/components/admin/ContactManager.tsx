@@ -108,12 +108,18 @@ export default function ContactManager() {
                       </span>
                     </div>
                   </div>
-                  {!submission.is_read && (
-                    <Button variant="outline" size="sm" onClick={() => markAsRead(submission.id)}>
-                      <Check className="w-4 h-4 mr-1" />
-                      Als gelesen markieren
+                  <div className="flex gap-2">
+                    {!submission.is_read && (
+                      <Button variant="outline" size="sm" onClick={() => markAsRead(submission.id)}>
+                        <Check className="w-4 h-4 mr-1" />
+                        Als gelesen markieren
+                      </Button>
+                    )}
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(submission.id)}>
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Löschen
                     </Button>
-                  )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

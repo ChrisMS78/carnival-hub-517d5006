@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
@@ -74,6 +75,7 @@ export default function SiteSettingsManager() {
   const categories = [...new Set(settings.map((s) => s.category))];
 
   const isMultiline = (key: string) => key.includes("address") || key.includes("content");
+  const isCheckbox = (key: string) => key.includes("show_");
 
   if (isLoading) {
     return <div className="flex justify-center p-8">Laden...</div>;
@@ -109,26 +111,41 @@ export default function SiteSettingsManager() {
                   .filter((s) => s.category === category)
                   .map((setting) => (
                     <div key={setting.key}>
-                      <Label htmlFor={setting.key}>{setting.label}</Label>
-                      {isMultiline(setting.key) ? (
-                        <Textarea
-                          id={setting.key}
-                          value={editedValues[setting.key] || ""}
-                          onChange={(e) =>
-                            setEditedValues({ ...editedValues, [setting.key]: e.target.value })
-                          }
-                          className="mt-2"
-                          rows={3}
-                        />
+                      {isCheckbox(setting.key) ? (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={setting.key}
+                            checked={editedValues[setting.key] === "true"}
+                            onCheckedChange={(checked) =>
+                              setEditedValues({ ...editedValues, [setting.key]: checked ? "true" : "false" })
+                            }
+                          />
+                          <Label htmlFor={setting.key}>{setting.label}</Label>
+                        </div>
                       ) : (
-                        <Input
-                          id={setting.key}
-                          value={editedValues[setting.key] || ""}
+                        <>
+                          <Label htmlFor={setting.key}>{setting.label}</Label>
+                          {isMultiline(setting.key) ? (
+                            <Textarea
+                              id={setting.key}
+                              value={editedValues[setting.key] || ""}
+                              onChange={(e) =>
+                                setEditedValues({ ...editedValues, [setting.key]: e.target.value })
+                              }
+                              className="mt-2"
+                              rows={3}
+                            />
+                          ) : (
+                            <Input
+                              id={setting.key}
+                              value={editedValues[setting.key] || ""}
                           onChange={(e) =>
                             setEditedValues({ ...editedValues, [setting.key]: e.target.value })
                           }
-                          className="mt-2"
-                        />
+                              className="mt-2"
+                            />
+                          )}
+                        </>
                       )}
                     </div>
                   ))}

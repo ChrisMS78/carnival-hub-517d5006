@@ -7,19 +7,42 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Kontakt() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { settings } = useSiteSettings([
+    "contact_title",
+    "contact_subtitle",
+    "contact_address",
+    "contact_email",
+    "contact_phone",
+  ]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      subject: formData.get("subject") as string || null,
+      message: formData.get("message") as string,
+    };
+
+    const { error } = await supabase.from("contact_submissions").insert([data]);
+
+    if (error) {
+      toast({ title: "Fehler", description: "Nachricht konnte nicht gesendet werden.", variant: "destructive" });
+    } else {
       toast({ title: "Nachricht gesendet!", description: "Wir melden uns bald bei Ihnen." });
-      setIsSubmitting(false);
       (e.target as HTMLFormElement).reset();
-    }, 1000);
+    }
+    setIsSubmitting(false);
   };
 
   return (
@@ -28,8 +51,12 @@ export default function Kontakt() {
       <main className="pt-20">
         <section className="py-20 carnival-gradient">
           <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl md:text-6xl font-display font-bold text-primary-foreground mb-4">Kontakt</h1>
-            <p className="text-xl text-primary-foreground/80">Wir freuen uns auf Ihre Nachricht!</p>
+            <h1 className="text-4xl md:text-6xl font-display font-bold text-primary-foreground mb-4">
+              {settings.contact_title || "Kontakt"}
+            </h1>
+            <p className="text-xl text-primary-foreground/80">
+              {settings.contact_subtitle || "Wir freuen uns auf Ihre Nachricht!"}
+            </p>
           </div>
         </section>
 
@@ -46,7 +73,9 @@ export default function Kontakt() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Adresse</h3>
-                      <p className="text-muted-foreground">Musterstraße 123<br />48329 Bösensell</p>
+                      <p className="text-muted-foreground whitespace-pre-line">
+                        {settings.contact_address || "Musterstraße 123\n48329 Bösensell"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -55,7 +84,12 @@ export default function Kontakt() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">E-Mail</h3>
-                      <a href="mailto:info@keb-ev.de" className="text-primary hover:underline">info@keb-ev.de</a>
+                      <a
+                        href={`mailto:${settings.contact_email || "info@keb-ev.de"}`}
+                        className="text-primary hover:underline"
+                      >
+                        {settings.contact_email || "info@keb-ev.de"}
+                      </a>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -64,7 +98,7 @@ export default function Kontakt() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Telefon</h3>
-                      <p className="text-muted-foreground">+49 123 456789</p>
+                      <p className="text-muted-foreground">{settings.contact_phone || "+49 123 456789"}</p>
                     </div>
                   </div>
                 </div>
@@ -75,11 +109,23 @@ export default function Kontakt() {
                 <h2 className="text-2xl font-display font-bold text-foreground mb-6">Nachricht senden</h2>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><Label htmlFor="name">Name *</Label><Input id="name" name="name" required className="mt-2" /></div>
-                    <div><Label htmlFor="email">E-Mail *</Label><Input id="email" name="email" type="email" required className="mt-2" /></div>
+                    <div>
+                      <Label htmlFor="name">Name *</Label>
+                      <Input id="name" name="name" required className="mt-2" />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">E-Mail *</Label>
+                      <Input id="email" name="email" type="email" required className="mt-2" />
+                    </div>
                   </div>
-                  <div><Label htmlFor="subject">Betreff</Label><Input id="subject" name="subject" className="mt-2" /></div>
-                  <div><Label htmlFor="message">Nachricht *</Label><Textarea id="message" name="message" rows={5} required className="mt-2" /></div>
+                  <div>
+                    <Label htmlFor="subject">Betreff</Label>
+                    <Input id="subject" name="subject" className="mt-2" />
+                  </div>
+                  <div>
+                    <Label htmlFor="message">Nachricht *</Label>
+                    <Textarea id="message" name="message" rows={5} required className="mt-2" />
+                  </div>
                   <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
                     <Send className="w-4 h-4 mr-2" />
                     {isSubmitting ? "Wird gesendet..." : "Absenden"}

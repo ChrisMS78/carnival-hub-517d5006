@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Calendar, Image, FileText, Mail, Home } from "lucide-react";
+import { LogOut, Calendar, Image, FileText, Mail, Home, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import EventsManager from "./EventsManager";
 import GalleryManager from "./GalleryManager";
 import AboutManager from "./AboutManager";
 import ContactManager from "./ContactManager";
+import SiteSettingsManager from "./SiteSettingsManager";
 
 export default function AdminDashboard() {
   const { user, signOut } = useAuth();
@@ -47,7 +48,7 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
             <TabsTrigger value="events" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               <span className="hidden sm:inline">Termine</span>
@@ -63,6 +64,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="contact" className="flex items-center gap-2">
               <Mail className="w-4 h-4" />
               <span className="hidden sm:inline">Nachrichten</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Einstellungen</span>
             </TabsTrigger>
           </TabsList>
 
@@ -80,6 +85,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="contact">
             <ContactManager />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <SiteSettingsManager />
           </TabsContent>
         </Tabs>
       </main>

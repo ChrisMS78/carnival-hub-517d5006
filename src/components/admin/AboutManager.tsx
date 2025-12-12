@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, FileText, Upload, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, Upload, Download, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -127,6 +127,28 @@ export default function AboutManager() {
     }
   };
 
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return;
+    
+    await Promise.all([
+      supabase.from("about_content").update({ sort_order: index - 1 }).eq("id", contents[index].id),
+      supabase.from("about_content").update({ sort_order: index }).eq("id", contents[index - 1].id),
+    ]);
+    
+    fetchContents();
+  };
+
+  const handleMoveDown = async (index: number) => {
+    if (index === contents.length - 1) return;
+    
+    await Promise.all([
+      supabase.from("about_content").update({ sort_order: index + 1 }).eq("id", contents[index].id),
+      supabase.from("about_content").update({ sort_order: index }).eq("id", contents[index + 1].id),
+    ]);
+    
+    fetchContents();
+  };
+
   const handleEdit = (content: AboutContent) => {
     setEditingContent(content);
     setFormData({
@@ -227,7 +249,7 @@ export default function AboutManager() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {contents.map((content) => (
+          {contents.map((content, index) => (
             <Card key={content.id}>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
@@ -235,7 +257,13 @@ export default function AboutManager() {
                     <CardTitle className="text-lg">{content.title}</CardTitle>
                     <span className="text-xs text-muted-foreground">Reihenfolge: {content.sort_order}</span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => handleMoveUp(index)} disabled={index === 0}>
+                      <ArrowUp className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleMoveDown(index)} disabled={index === contents.length - 1}>
+                      <ArrowDown className="w-4 h-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(content)}>
                       <Pencil className="w-4 h-4" />
                     </Button>

@@ -2,10 +2,14 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+type AppRole = 'admin' | 'redakteur' | 'user';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  isRedakteur: boolean;
+  hasBackendAccess: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -18,7 +22,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isRedakteur, setIsRedakteur] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const hasBackendAccess = isAdmin || isRedakteur;
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -28,10 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (session?.user) {
           setTimeout(() => {
-            checkAdminRole(session.user.id);
+            checkUserAccess(session.user.id);
           }, 0);
         } else {
           setIsAdmin(false);
+          setIsRedakteur(false);
         }
       }
     );
@@ -40,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        checkAdminRole(session.user.id);
+        checkUserAccess(session.user.id);
       }
       setIsLoading(false);
     });
@@ -48,19 +56,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkAdminRole = async (userId: string) => {
-    const { data, error } = await supabase
+  const checkUserAccess = async (userId: string) => {
+    // Check if user is active
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_active')
+      .eq('id', userId)
+      .maybeSingle();
+
+    // If user is not active, sign them out
+    if (profile && profile.is_active === false) {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setIsAdmin(false);
+      setIsRedakteur(false);
+      return;
+    }
+
+    // Check user role
+    const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
-      .eq('role', 'admin')
       .maybeSingle();
     
-    setIsAdmin(!!data && !error);
+    setIsAdmin(roleData?.role === 'admin');
+    setIsRedakteur(roleData?.role === 'redakteur');
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (!error && data.user) {
+      // Check if user is active
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_active')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (profile && profile.is_active === false) {
+        await supabase.auth.signOut();
+        return { error: new Error('Ihr Konto wurde deaktiviert. Kontaktieren Sie den Administrator.') };
+      }
+    }
+    
     return { error: error as Error | null };
   };
 
@@ -79,10 +120,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setIsAdmin(false);
+    setIsRedakteur(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, isRedakteur, hasBackendAccess, isLoading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

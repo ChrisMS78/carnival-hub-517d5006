@@ -15,7 +15,7 @@ const loginSchema = z.object({
 });
 
 export default function Admin() {
-  const { user, isAdmin, isLoading, signIn, signUp } = useAuth();
+  const { user, isAdmin, isRedakteur, hasBackendAccess, isLoading, signIn, signUp } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState("");
@@ -75,8 +75,8 @@ export default function Admin() {
     );
   }
 
-  // If logged in and admin, show dashboard
-  if (user && isAdmin) {
+  // If logged in and has backend access (admin or redakteur), show dashboard
+  if (user && hasBackendAccess) {
     return <AdminDashboard />;
   }
 

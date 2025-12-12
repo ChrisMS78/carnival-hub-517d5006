@@ -86,6 +86,7 @@ export type Database = {
           id: string
           image_url: string | null
           location: string | null
+          sort_order: number | null
           title: string
           updated_at: string | null
         }
@@ -97,6 +98,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           location?: string | null
+          sort_order?: number | null
           title: string
           updated_at?: string | null
         }
@@ -108,6 +110,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           location?: string | null
+          sort_order?: number | null
           title?: string
           updated_at?: string | null
         }

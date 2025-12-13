@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { usePageBackground } from "@/hooks/usePageBackground";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Kontakt() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { backgroundUrl } = usePageBackground("kontakt");
   
   const { settings } = useSiteSettings([
     "contact_title",
@@ -60,7 +62,10 @@ export default function Kontakt() {
           </div>
         </section>
 
-        <section className="py-20">
+        <section 
+          className="py-20 bg-cover bg-center bg-no-repeat"
+          style={backgroundUrl ? { backgroundImage: `url(${backgroundUrl})` } : undefined}
+        >
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
               {/* Contact Info */}

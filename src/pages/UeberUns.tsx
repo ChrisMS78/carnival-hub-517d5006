@@ -5,6 +5,7 @@ import { FileText, Download, Users, Award, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { usePageBackground } from "@/hooks/usePageBackground";
 import type { Tables } from "@/integrations/supabase/types";
 
 type AboutContent = Tables<"about_content">;
@@ -12,6 +13,7 @@ type AboutContent = Tables<"about_content">;
 export default function UeberUns() {
   const [sections, setSections] = useState<AboutContent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { backgroundUrl } = usePageBackground("ueber-uns");
 
   const { settings } = useSiteSettings([
     "about_title",
@@ -85,7 +87,10 @@ export default function UeberUns() {
         )}
 
         {/* Content */}
-        <section className="py-20">
+        <section 
+          className="py-20 bg-cover bg-center bg-no-repeat"
+          style={backgroundUrl ? { backgroundImage: `url(${backgroundUrl})` } : undefined}
+        >
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto space-y-12">
               {isLoading ? (
@@ -94,13 +99,26 @@ export default function UeberUns() {
                 <div className="text-center text-muted-foreground">Kein Inhalt vorhanden</div>
               ) : (
                 textSections.map((section) => (
-                  <div key={section.id}>
-                    <h2 className="text-3xl font-display font-bold text-foreground mb-4">
-                      {section.title}
-                    </h2>
-                    <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                      {section.content}
-                    </p>
+                  <div key={section.id} className="bg-card/90 rounded-2xl p-6">
+                    <div className="flex flex-col md:flex-row gap-6">
+                      {section.image_url && (
+                        <div className="w-full md:w-48 h-48 flex-shrink-0">
+                          <img 
+                            src={section.image_url} 
+                            alt={section.title} 
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h2 className="text-3xl font-display font-bold text-foreground mb-4">
+                          {section.title}
+                        </h2>
+                        <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                          {section.content}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ))
               )}

@@ -20,7 +20,7 @@ const App = () => (
       <AuthProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename="/www/keb">
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/ueber-uns" element={<UeberUns />} />

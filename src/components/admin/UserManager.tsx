@@ -65,7 +65,7 @@ export default function UserManager() {
 
     setRoles(userRoles || []);
 
-    // Combine profiles with roles
+    // Combine profiles with roles - show ALL users for admin
     const usersWithRoles: UserWithRole[] = (profiles || []).map((profile) => {
       const userRole = userRoles?.find((r) => r.user_id === profile.id);
       return {
@@ -74,9 +74,8 @@ export default function UserManager() {
       };
     });
 
-    // Filter to only show users who have a role (admin or redakteur)
-    const backendUsers = usersWithRoles.filter((u) => u.role === "admin" || u.role === "redakteur");
-    setUsers(backendUsers);
+    // Show all users (including those without roles)
+    setUsers(usersWithRoles);
     setIsLoading(false);
   };
 

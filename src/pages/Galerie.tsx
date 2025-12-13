@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import { usePageBackground } from "@/hooks/usePageBackground";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
@@ -17,6 +18,7 @@ export default function Galerie() {
   const [albums, setAlbums] = useState<AlbumWithImages[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const { backgroundUrl } = usePageBackground("galerie");
 
   useEffect(() => {
     fetchAlbums();
@@ -66,7 +68,10 @@ export default function Galerie() {
           </div>
         </section>
 
-        <section className="py-20">
+        <section 
+          className="py-20 bg-cover bg-center bg-no-repeat"
+          style={backgroundUrl ? { backgroundImage: `url(${backgroundUrl})` } : undefined}
+        >
           <div className="container mx-auto px-4">
             {isLoading ? (
               <div className="text-center py-12">

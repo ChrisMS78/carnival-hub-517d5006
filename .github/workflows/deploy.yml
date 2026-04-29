@@ -36,7 +36,7 @@ jobs:
           security: loose
 
           local-dir: dist/
-          server-dir: /www/
+          server-dir: /
           dangerous-clean-slate: true
           log-level: verbose
  

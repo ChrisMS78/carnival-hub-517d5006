@@ -36,6 +36,6 @@ jobs:
           security: loose
 
           local-dir: dist/
-          server-dir: /www/keb/
+          server-dir: /www/
           dangerous-clean-slate: true
           log-level: verbose

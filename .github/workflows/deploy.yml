@@ -39,4 +39,3 @@ jobs:
           server-dir: /
           dangerous-clean-slate: true
           log-level: verbose
- 

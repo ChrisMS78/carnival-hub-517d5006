@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,14 +38,17 @@ export default function Galerie() {
       return;
     }
 
-    // Fetch images for each album
     const albumsWithImages: AlbumWithImages[] = await Promise.all(
       (albumsData || []).map(async (album) => {
-        const { data: imagesData } = await supabase
+        const { data: imagesData, error: imagesError } = await supabase
           .from("gallery_images")
           .select("*")
           .eq("album_id", album.id)
           .order("sort_order", { ascending: true });
+
+        if (imagesError) {
+          console.error("Error fetching gallery images:", imagesError);
+        }
 
         return {
           ...album,
@@ -58,86 +62,118 @@ export default function Galerie() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className="min-h-screen bg-background"
+      style={
+        backgroundUrl
+          ? {
+              backgroundImage: `url(${backgroundUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundAttachment: "fixed",
+            }
+          : undefined
+      }
+    >
       <Navbar />
-      <main className="pt-20">
-        <section className="py-20 carnival-gradient">
-          <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl md:text-6xl font-display font-bold text-primary-foreground mb-4">Galerie</h1>
-            <p className="text-xl text-primary-foreground/80">Impressionen aus unseren Veranstaltungen</p>
-          </div>
-        </section>
 
-        <section 
-          className="py-20 bg-cover bg-center bg-no-repeat"
-          style={backgroundUrl ? { backgroundImage: `url(${backgroundUrl})` } : undefined}
-        >
-          <div className="container mx-auto px-4">
-            {isLoading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-4 text-muted-foreground">Lade Galerie...</p>
-              </div>
-            ) : albums.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground text-lg">Noch keine Galerien vorhanden.</p>
-              </div>
-            ) : (
-              albums.map((album) => (
-                <div key={album.id} className="mb-16">
-                  <h2 className="text-3xl font-display font-bold text-foreground mb-2">{album.title}</h2>
+      <main className="container mx-auto px-4 py-12">
+        <div className="mb-12 text-center">
+          <h1 className="mb-4 text-4xl font-bold md:text-5xl">Galerie</h1>
+          <p className="text-lg text-muted-foreground">
+            Impressionen aus unseren Veranstaltungen
+          </p>
+        </div>
+
+        {isLoading ? (
+          <div className="py-12 text-center">
+            <p className="text-muted-foreground">Lade Galerie...</p>
+          </div>
+        ) : albums.length === 0 ? (
+          <div className="py-12 text-center">
+            <p className="text-muted-foreground">
+              Noch keine Galerien vorhanden.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-16">
+            {albums.map((album) => (
+              <section key={album.id}>
+                <div className="mb-6">
+                  <h2 className="mb-2 text-3xl font-bold">{album.title}</h2>
+
                   {album.event_date && (
-                    <p className="text-muted-foreground mb-2">
-                      {format(new Date(album.event_date), "MMMM yyyy", { locale: de })}
+                    <p className="mb-3 text-lg text-muted-foreground">
+                      {format(new Date(album.event_date), "MMMM yyyy", {
+                        locale: de,
+                      })}
                     </p>
                   )}
+
                   {album.description && (
-                    <p className="text-muted-foreground mb-6">{album.description}</p>
-                  )}
-                  {album.images.length === 0 ? (
-                    <p className="text-muted-foreground italic">Keine Bilder in diesem Album</p>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {album.images.map((img) => (
-                        <div
-                          key={img.id}
-                          className="aspect-square rounded-xl overflow-hidden group cursor-pointer"
-                          onClick={() => setSelectedImage(img.image_url)}
-                        >
-                          <img
-                            src={img.image_url}
-                            alt={img.caption || album.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                        </div>
-                      ))}
-                    </div>
+                    <p className="text-muted-foreground">
+                      {album.description}
+                    </p>
                   )}
                 </div>
-              ))
-            )}
+
+                {album.images.length === 0 ? (
+                  <p className="text-muted-foreground">
+                    Keine Bilder in diesem Album
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    {album.images.slice(0, 3).map((img) => (
+                      <button
+                        key={img.id}
+                        type="button"
+                        onClick={() => setSelectedImage(img.image_url)}
+                        className="group overflow-hidden rounded-xl shadow-md transition hover:scale-[1.02] hover:shadow-xl"
+                      >
+                        <img
+                          src={img.image_url}
+                          alt={img.alt_text || album.title}
+                          className="h-64 w-full object-cover transition group-hover:brightness-90"
+                        />
+                      </button>
+                    ))}
+
+                    <Link
+                      to={`/galerie/${album.id}`}
+                      className="flex h-64 items-center justify-center rounded-xl bg-primary px-6 text-center text-xl font-bold text-primary-foreground shadow-md transition hover:scale-[1.02] hover:shadow-xl"
+                    >
+                      Alle Bilder
+                    </Link>
+                  </div>
+                )}
+              </section>
+            ))}
           </div>
-        </section>
+        )}
       </main>
+
       <Footer />
 
-      {/* Lightbox */}
       {selectedImage && (
         <div
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
           onClick={() => setSelectedImage(null)}
         >
-          <img
-            src={selectedImage}
-            alt="Vergrößertes Bild"
-            className="max-w-full max-h-full object-contain"
-          />
           <button
-            className="absolute top-4 right-4 text-white text-4xl hover:text-primary transition-colors"
+            type="button"
             onClick={() => setSelectedImage(null)}
+            className="absolute right-6 top-6 rounded-full bg-white/10 px-4 py-2 text-3xl text-white transition hover:bg-white/20"
+            aria-label="Bild schließen"
           >
             ×
           </button>
+
+          <img
+            src={selectedImage}
+            alt="Galeriebild"
+            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+            onClick={(event) => event.stopPropagation()}
+          />
         </div>
       )}
     </div>

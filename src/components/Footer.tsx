@@ -1,116 +1,159 @@
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Mail, MapPin, Phone, LogOut } from "lucide-react";
+
 import { useAuth } from "@/hooks/useAuth";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Button } from "@/components/ui/button";
 
 export function Footer() {
   const { user, signOut } = useAuth();
 
+  const { settings } = useSiteSettings([
+    "contact_address",
+    "contact_email",
+    "contact_phone",
+  ]);
+
   const handleLogout = async () => {
     await signOut();
   };
 
+  const contactAddress =
+    settings.contact_address || "Musterstraße 123\n48329 Bösensell";
+  const contactEmail = settings.contact_email || "info@keb-ev.de";
+  const contactPhone = settings.contact_phone || "+49 123 456789";
+
   return (
-    <footer className="bg-carnival-dark text-carnival-cream">
-      <div className="container mx-auto px-4 py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+    <footer className="bg-card border-t">
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid gap-8 md:grid-cols-3">
           {/* Brand */}
           <div>
-            <h3 className="text-2xl font-display font-bold mb-4 text-carnival-gold">
+            <h3 className="mb-4 text-2xl font-bold text-primary">
               K.E.B e.V.
             </h3>
-            <p className="text-carnival-cream/70 leading-relaxed">
-              Wir vom K.E.B e.V. möchten die Tradition des Karnevals aufrechterhalten, 
-              so dass jung und alt zusammen die fünfte Jahreszeit vor Ort in Bösensell feiern können.
+
+            <p className="mb-4 text-muted-foreground">
+              Wir vom K.E.B e.V. möchten die Tradition des Karnevals
+              aufrechterhalten, so dass jung und alt zusammen die fünfte
+              Jahreszeit vor Ort in Bösensell feiern können.
             </p>
-            <div className="flex gap-4 mt-6">
-              <a
-                href="#"
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-carnival-cream/10 hover:bg-carnival-red transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook size={20} />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-carnival-cream/10 hover:bg-carnival-red transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram size={20} />
-              </a>
+
+            <div className="flex gap-3">
+              <Button variant="outline" size="icon" asChild>
+                <a
+                  href="#"
+                  aria-label="Facebook"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Facebook className="h-4 w-4" />
+                </a>
+              </Button>
+
+              <Button variant="outline" size="icon" asChild>
+                <a
+                  href="#"
+                  aria-label="Instagram"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Instagram className="h-4 w-4" />
+                </a>
+              </Button>
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-semibold mb-4 text-carnival-gold">Quick Links</h4>
-            <ul className="space-y-3">
-              <li>
-                <Link to="/ueber-uns" className="text-carnival-cream/70 hover:text-carnival-cream transition-colors">
-                  Über Uns
-                </Link>
-              </li>
-              <li>
-                <Link to="/termine" className="text-carnival-cream/70 hover:text-carnival-cream transition-colors">
-                  Termine
-                </Link>
-              </li>
-              <li>
-                <Link to="/galerie" className="text-carnival-cream/70 hover:text-carnival-cream transition-colors">
-                  Galerie
-                </Link>
-              </li>
-              <li>
-                <Link to="/kontakt" className="text-carnival-cream/70 hover:text-carnival-cream transition-colors">
-                  Kontakt
-                </Link>
-              </li>
-              <li className="flex items-center gap-2 flex-wrap">
-                <Link to="/admin" className="text-carnival-cream/70 hover:text-carnival-cream transition-colors">
-                  Verwaltung
-                </Link>
-                {user && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="text-carnival-cream/70 hover:text-carnival-cream hover:bg-carnival-cream/10 p-1 h-auto"
-                  >
-                    <LogOut size={16} />
-                    <span className="ml-1 text-xs">Abmelden</span>
-                  </Button>
-                )}
-              </li>
-            </ul>
+            <h4 className="mb-4 text-lg font-semibold">Quick Links</h4>
+
+            <nav className="flex flex-col gap-2">
+              <Link
+                to="/ueber-uns"
+                className="text-muted-foreground transition hover:text-primary"
+              >
+                Über Uns
+              </Link>
+
+              <Link
+                to="/termine"
+                className="text-muted-foreground transition hover:text-primary"
+              >
+                Termine
+              </Link>
+
+              <Link
+                to="/galerie"
+                className="text-muted-foreground transition hover:text-primary"
+              >
+                Galerie
+              </Link>
+
+              <Link
+                to="/kontakt"
+                className="text-muted-foreground transition hover:text-primary"
+              >
+                Kontakt
+              </Link>
+
+              <Link
+                to="/admin"
+                className="text-muted-foreground transition hover:text-primary"
+              >
+                Verwaltung
+              </Link>
+
+              {user && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="w-fit justify-start px-0 text-muted-foreground hover:text-primary"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Abmelden
+                </Button>
+              )}
+            </nav>
           </div>
 
           {/* Contact Info */}
           <div>
-            <h4 className="text-lg font-semibold mb-4 text-carnival-gold">Kontakt</h4>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-3 text-carnival-cream/70">
-                <MapPin size={20} className="flex-shrink-0 mt-0.5" />
-                <span>Musterstraße 123<br />48329 Bösensell</span>
-              </li>
-              <li className="flex items-center gap-3 text-carnival-cream/70">
-                <Mail size={20} className="flex-shrink-0" />
-                <a href="mailto:info@keb-ev.de" className="hover:text-carnival-cream transition-colors">
-                  info@keb-ev.de
+            <h4 className="mb-4 text-lg font-semibold">Kontakt</h4>
+
+            <div className="space-y-3 text-muted-foreground">
+              <div className="flex items-start gap-3">
+                <MapPin className="mt-1 h-5 w-5 shrink-0 text-primary" />
+                <span className="whitespace-pre-line">{contactAddress}</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 shrink-0 text-primary" />
+                <a
+                  href={`mailto:${contactEmail}`}
+                  className="transition hover:text-primary"
+                >
+                  {contactEmail}
                 </a>
-              </li>
-              <li className="flex items-center gap-3 text-carnival-cream/70">
-                <Phone size={20} className="flex-shrink-0" />
-                <span>+49 123 456789</span>
-              </li>
-            </ul>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Phone className="h-5 w-5 shrink-0 text-primary" />
+                <a
+                  href={`tel:${contactPhone.replace(/\s+/g, "")}`}
+                  className="transition hover:text-primary"
+                >
+                  {contactPhone}
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-carnival-cream/10 text-center text-carnival-cream/50 text-sm">
+        <div className="mt-8 border-t pt-8 text-center text-muted-foreground">
           <p>© {new Date().getFullYear()} K.E.B e.V. Alle Rechte vorbehalten.</p>
-          <p className="mt-2">
-            Helau Bösensell! 🎭
-          </p>
+          <p className="mt-2 text-sm">Helau Bösensell!</p>
         </div>
       </div>
     </footer>

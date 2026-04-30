@@ -8,32 +8,32 @@ import Index from "./pages/Index";
 import UeberUns from "./pages/UeberUns";
 import Termine from "./pages/Termine";
 import Galerie from "./pages/Galerie";
+import GalerieAlbum from "./pages/GalerieAlbum";
 import Kontakt from "./pages/Kontakt";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
-import GalerieAlbum from "./pages/GalerieAlbum";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/ueber-uns" element={<UeberUns />} />
             <Route path="/termine" element={<Termine />} />
             <Route path="/galerie" element={<Galerie />} />
+            <Route path="/galerie/:albumId" element={<GalerieAlbum />} />
             <Route path="/kontakt" element={<Kontakt />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
-            <Route path="/galerie/:albumId" element={<GalerieAlbum />} />
           </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

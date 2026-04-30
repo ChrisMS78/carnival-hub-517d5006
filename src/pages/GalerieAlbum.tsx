@@ -73,8 +73,7 @@ export default function GalerieAlbum() {
     });
   };
 
-  const selectedImage =
-    selectedIndex !== null ? images[selectedIndex] : null;
+  const selectedImage = selectedIndex !== null ? images[selectedIndex] : null;
 
   return (
     <div

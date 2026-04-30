@@ -284,6 +284,7 @@ export default function GalleryManager() {
                   value={albumFormData.description}
                   onChange={(e) => setAlbumFormData({ ...albumFormData, description: e.target.value })}
                   rows={3}
+                  required
                 />
               </div>
               <div>
@@ -293,6 +294,7 @@ export default function GalleryManager() {
                   type="date"
                   value={albumFormData.event_date}
                   onChange={(e) => setAlbumFormData({ ...albumFormData, event_date: e.target.value })}
+                  required
                 />
               </div>
               <div className="flex gap-2 justify-end">

@@ -1,6 +1,8 @@
+// src/components/GalleryPreview.tsx
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Images, X } from "lucide-react";
+import { ArrowRight, Images } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,9 +18,6 @@ interface GalleryPreviewItem {
 
 export function GalleryPreview() {
   const [previewItems, setPreviewItems] = useState<GalleryPreviewItem[]>([]);
-  const [selectedImage, setSelectedImage] = useState<GalleryPreviewItem | null>(
-    null
-  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -93,12 +92,10 @@ export function GalleryPreview() {
         ) : (
           <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-3">
             {previewItems.map((item) => (
-              <button
+              <Link
                 key={item.album.id}
-                type="button"
-                onClick={() => item.image && setSelectedImage(item)}
-                disabled={!item.image}
-                className="group relative h-72 overflow-hidden rounded-2xl shadow-lg transition hover:scale-[1.02] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
+                to={`/galerie/${item.album.id}`}
+                className="group relative h-72 overflow-hidden rounded-2xl shadow-lg transition hover:scale-[1.02] hover:shadow-xl"
               >
                 {item.image ? (
                   <img
@@ -125,7 +122,7 @@ export function GalleryPreview() {
                     </p>
                   )}
                 </div>
-              </button>
+              </Link>
             ))}
           </div>
         )}
@@ -139,49 +136,6 @@ export function GalleryPreview() {
           </Button>
         </div>
       </div>
-
-      {selectedImage?.image && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-          onClick={() => setSelectedImage(null)}
-        >
-          <button
-            type="button"
-            onClick={() => setSelectedImage(null)}
-            className="absolute right-6 top-6 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
-            aria-label="Bild schließen"
-          >
-            <X className="h-7 w-7" />
-          </button>
-
-          <div
-            className="max-w-5xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <img
-              src={selectedImage.image.image_url}
-              alt={
-                selectedImage.image.alt_text ||
-                selectedImage.album.title ||
-                "Galeriebild"
-              }
-              className="max-h-[82vh] max-w-[90vw] rounded-lg object-contain"
-            />
-
-            <div className="mt-4 text-center">
-              <h3 className="text-2xl font-bold text-white">
-                {selectedImage.album.title}
-              </h3>
-
-              {selectedImage.album.description && (
-                <p className="mt-2 text-white/80">
-                  {selectedImage.album.description}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

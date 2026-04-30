@@ -95,6 +95,25 @@ export default function GalleryManager() {
   const handleAlbumSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const missingFields = [];
+  
+    if (!albumFormData.title.trim()) {
+      missingFields.push("Titel");
+    }
+  
+    if (!albumFormData.description.trim()) {
+      missingFields.push("Beschreibung");
+    }
+  
+    if (!albumFormData.event_date) {
+      missingFields.push("Datum");
+    }
+  
+    if (missingFields.length > 0) {
+      toast.error(`Bitte füllen Sie folgende Pflichtfelder aus: ${missingFields.join(", ")}`);
+      return;
+    }
+    
     if (editingAlbum) {
       const { error } = await supabase
         .from("gallery_albums")

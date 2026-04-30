@@ -15,14 +15,17 @@ export default function UeberUns() {
   const [isLoading, setIsLoading] = useState(true);
   const { backgroundUrl } = usePageBackground("ueber-uns");
 
-  const { settings } = useSiteSettings([
-    "about_title",
-    "about_subtitle",
-    "about_stat_members",
-    "about_stat_years",
-    "about_stat_events",
-    "about_show_stats",
-  ]);
+const { settings } = useSiteSettings([
+  "about_title",
+  "about_subtitle",
+  "about_stat_members",
+  "about_stat_years",
+  "about_stat_events",
+  "about_stat_members_label",
+  "about_stat_years_label",
+  "about_stat_events_label",
+  "about_show_stats",
+]);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -43,11 +46,23 @@ export default function UeberUns() {
 
   const showStats = settings.about_show_stats !== "false";
 
-  const stats = [
-    { icon: Users, value: settings.about_stat_members || "150+", label: "Mitglieder" },
-    { icon: Award, value: settings.about_stat_years || "10+", label: "Jahre Tradition" },
-    { icon: Heart, value: settings.about_stat_events || "20+", label: "Events pro Jahr" },
-  ];
+const stats = [
+  {
+    icon: Users,
+    value: settings.about_stat_members || "150+",
+    label: settings.about_stat_members_label || "Mitglieder",
+  },
+  {
+    icon: Award,
+    value: settings.about_stat_years || "10+",
+    label: settings.about_stat_years_label || "Jahre Tradition",
+  },
+  {
+    icon: Heart,
+    value: settings.about_stat_events || "20+",
+    label: settings.about_stat_events_label || "Events pro Jahr",
+  },
+];
 
   return (
     <div className="min-h-screen bg-background">

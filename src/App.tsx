@@ -11,6 +11,7 @@ import Galerie from "./pages/Galerie";
 import Kontakt from "./pages/Kontakt";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import GalerieAlbum from "./pages/GalerieAlbum";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/kontakt" element={<Kontakt />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
+            <Route path="/galerie/:albumId" element={<GalerieAlbum />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

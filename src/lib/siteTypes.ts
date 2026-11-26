@@ -11,6 +11,8 @@ export type Database = {
     Tables: {
       about_content: {
         Row: {
+          last_edit_by?: string | null
+          last_edit_at?: string | null
           content: string | null
           created_at: string | null
           id: string
@@ -50,6 +52,8 @@ export type Database = {
       }
       contact_submissions: {
         Row: {
+          last_edit_by?: string | null
+          last_edit_at?: string | null
           created_at: string | null
           email: string
           id: string
@@ -80,6 +84,8 @@ export type Database = {
       }
       events: {
         Row: {
+          last_edit_by?: string | null
+          last_edit_at?: string | null
           created_at: string | null
           description: string | null
           event_date: string
@@ -119,6 +125,8 @@ export type Database = {
       }
       gallery_albums: {
         Row: {
+          last_edit_by?: string | null
+          last_edit_at?: string | null
           cover_image_url: string | null
           created_at: string | null
           description: string | null
@@ -149,6 +157,8 @@ export type Database = {
       }
       gallery_images: {
         Row: {
+          last_edit_by?: string | null
+          last_edit_at?: string | null
           album_id: string
           caption: string | null
           created_at: string | null
@@ -185,6 +195,8 @@ export type Database = {
       }
       page_backgrounds: {
         Row: {
+          last_edit_by?: string | null
+          last_edit_at?: string | null
           background_url: string | null
           created_at: string | null
           id: string
@@ -212,9 +224,12 @@ export type Database = {
       }
       profiles: {
         Row: {
+          last_edit_by?: string | null
+          last_edit_at?: string | null
           created_at: string | null
           display_name: string | null
           email: string | null
+          username: string
           id: string
           is_active: boolean | null
         }
@@ -236,6 +251,8 @@ export type Database = {
       }
       site_settings: {
         Row: {
+          last_edit_by?: string | null
+          last_edit_at?: string | null
           category: string
           created_at: string | null
           id: string

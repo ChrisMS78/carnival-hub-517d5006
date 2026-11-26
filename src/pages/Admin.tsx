@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, Mail } from "lucide-react";
+import { Lock, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -10,26 +10,26 @@ import { z } from "zod";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 
 const loginSchema = z.object({
-  email: z.string().trim().email({ message: "Ungültige E-Mail-Adresse" }),
+  identifier: z.string().trim().min(1, { message: "Benutzername oder E-Mail-Adresse eingeben" }).max(254),
   password: z.string().min(6, { message: "Passwort muss mindestens 6 Zeichen haben" }),
 });
 
 export default function Admin() {
   const { user, hasBackendAccess, isLoading, signIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ identifier?: string; password?: string }>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
-    const validation = loginSchema.safeParse({ email, password });
+    const validation = loginSchema.safeParse({ identifier, password });
     if (!validation.success) {
-      const fieldErrors: { email?: string; password?: string } = {};
+      const fieldErrors: { identifier?: string; password?: string } = {};
       validation.error.errors.forEach((err) => {
-        if (err.path[0] === "email") fieldErrors.email = err.message;
+        if (err.path[0] === "identifier") fieldErrors.identifier = err.message;
         if (err.path[0] === "password") fieldErrors.password = err.message;
       });
       setErrors(fieldErrors);
@@ -39,7 +39,7 @@ export default function Admin() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await signIn(identifier, password);
       if (error) toast.error(error.message);
     } finally {
       setIsSubmitting(false);
@@ -91,20 +91,23 @@ export default function Admin() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="email">E-Mail</Label>
+              <Label htmlFor="identifier">Benutzername oder E-Mail</Label>
               <div className="relative mt-2">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@keb-ev.de"
+                  id="identifier"
+                  type="text"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  placeholder="Benutzername oder E-Mail-Adresse"
                   className="pl-10"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   required
                 />
               </div>
-              {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
+              {errors.identifier && <p className="text-sm text-destructive mt-1">{errors.identifier}</p>}
             </div>
             <div>
               <Label htmlFor="password">Passwort</Label>
@@ -113,6 +116,7 @@ export default function Admin() {
                 <Input
                   id="password"
                   type="password"
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   className="pl-10"
                   value={password}

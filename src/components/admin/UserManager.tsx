@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { siteApi } from "@/lib/siteApi";
+import { useAuth } from "@/hooks/useAuth";
+import { LastEdit } from "./LastEdit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +21,7 @@ interface UserWithRole extends Profile {
 }
 
 export default function UserManager() {
+  const { user: currentAccount } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -32,6 +35,7 @@ export default function UserManager() {
     password: "",
     password_confirmation: "",
     display_name: "",
+    username: "",
     role: "redakteur" as AppRole,
   });
 
@@ -86,6 +90,10 @@ export default function UserManager() {
       toast.error("Das Passwort muss mindestens 12 Zeichen haben und darf höchstens 72 Bytes lang sein.");
       return;
     }
+    if (!/^[a-z0-9][a-z0-9._-]{2,63}$/i.test(formData.username.trim())) {
+      toast.error("Benutzername: 3–64 Zeichen (Buchstaben, Zahlen, Punkt, Bindestrich, Unterstrich).");
+      return;
+    }
     if (formData.password !== formData.password_confirmation) {
       toast.error("Die Passwörter stimmen nicht überein.");
       return;
@@ -115,7 +123,7 @@ export default function UserManager() {
       .eq("id", user.id);
 
     if (error) {
-      toast.error("Fehler beim Aktualisieren");
+      toast.error(error.message);
     } else {
       toast.success(newActiveState ? "Benutzer aktiviert" : "Benutzer deaktiviert");
       fetchUsers();
@@ -129,26 +137,20 @@ export default function UserManager() {
   };
 
   const handleDeleteUser = async (user: UserWithRole) => {
-    if (!confirm(`Möchten Sie den Benutzer "${user.display_name || user.email}" wirklich löschen?`)) {
+    if (!confirm(`Möchten Sie den Benutzer "${user.display_name || user.email}" endgültig löschen? Das Konto kann nicht wiederhergestellt werden. Erstellte Inhalte bleiben erhalten.`)) {
       return;
     }
 
-    // Deactivate account without removing its assigned role.
-    const { error } = await siteApi
-      .from("profiles")
-      .update({ is_active: false })
-      .eq("id", user.id);
-
-    if (error) {
-      toast.error("Fehler beim Löschen");
-    } else {
-      toast.success("Benutzer wurde deaktiviert");
-      fetchUsers();
+    const { error } = await siteApi.deleteUser(user.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Benutzer endgültig gelöscht");
+      await fetchUsers();
     }
   };
 
   const resetForm = () => {
-    setFormData({ email: "", password: "", password_confirmation: "", display_name: "", role: "redakteur" });
+    setFormData({ email: "", password: "", password_confirmation: "", display_name: "", username: "", role: "redakteur" });
     setShowPassword(false);
     setIsDialogOpen(false);
   };
@@ -216,6 +218,20 @@ export default function UserManager() {
                   onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                   required
                 />
+              </div>
+              <div>
+                <Label htmlFor="username">Benutzername</Label>
+                <Input
+                  id="username"
+                  autoComplete="off"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase() })}
+                  minLength={3}
+                  maxLength={64}
+                  placeholder="z. B. karneval"
+                  required
+                />
+                <p className="text-xs text-muted-foreground mt-1">Eindeutiger Name für die Anmeldung.</p>
               </div>
               <div>
                 <Label htmlFor="email">E-Mail</Label>
@@ -312,12 +328,15 @@ export default function UserManager() {
                     </div>
                     <div>
                       <p className="font-medium">{user.display_name || "Kein Name"}</p>
+                      <p className="text-sm text-muted-foreground">Benutzername: {user.username}</p>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <LastEdit record={user} />
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
                     <Select
                       value={user.role || "redakteur"}
+                      disabled={user.id === currentAccount?.id}
                       onValueChange={(value: AppRole) => handleRoleChange(user, value)}
                     >
                       <SelectTrigger className="w-32">
@@ -332,6 +351,7 @@ export default function UserManager() {
                       <Checkbox
                         id={`active-${user.id}`}
                         checked={user.is_active ?? true}
+                        disabled={user.id === currentAccount?.id}
                         onCheckedChange={() => handleToggleActive(user)}
                       />
                       <Label htmlFor={`active-${user.id}`} className="text-sm cursor-pointer">
@@ -341,7 +361,7 @@ export default function UserManager() {
                     <Button variant="ghost" size="sm" onClick={() => openPasswordDialog(user)} title="Passwort ändern">
                       <Key className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user)} disabled={user.id === currentAccount?.id} title="Benutzer endgültig löschen">
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>

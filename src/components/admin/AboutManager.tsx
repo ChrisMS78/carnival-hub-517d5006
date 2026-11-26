@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { siteApi } from "@/lib/siteApi";
+import { LastEdit } from "./LastEdit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -219,6 +220,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-lg">{content.title}</CardTitle>
+                  <LastEdit record={content} />
                   <span className="text-xs text-muted-foreground">Reihenfolge: {content.sort_order}</span>
                 </div>
                 <div className="flex gap-1">

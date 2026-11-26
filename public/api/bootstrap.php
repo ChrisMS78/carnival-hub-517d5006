@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/migration.php';
 ini_set('display_errors','0');
 ini_set('session.use_strict_mode','1');
 ini_set('session.use_only_cookies','1');
@@ -42,7 +43,7 @@ function input(): array {
 function current_user(): ?array {
  if(empty($_SESSION['uid'])) return null;
  if(time()-($_SESSION['last']??0)>7200){unset($_SESSION['uid']);return null;}
- $u=stmt('SELECT p.id,p.email,p.display_name,p.password_hash,r.role FROM profiles p LEFT JOIN user_roles r ON p.id=r.user_id WHERE p.id=? AND p.is_active=1',[$_SESSION['uid']])->fetch();
+ $u=stmt('SELECT p.id,p.email,p.display_name,p.username,p.password_hash,r.role FROM profiles p LEFT JOIN user_roles r ON p.id=r.user_id WHERE p.id=? AND p.is_active=1',[$_SESSION['uid']])->fetch();
  if(!$u || !hash_equals(hash('sha256',$u['password_hash']),$_SESSION['version']??'')){unset($_SESSION['uid']);return null;}
  unset($u['password_hash']); $u['role']=$u['role']??'user'; $_SESSION['last']=time();return $u;
 }
@@ -67,14 +68,17 @@ function hash_password(mixed $pw): string {
  if(!is_string($pw)||strlen($pw)<12||strlen($pw)>72||str_contains($pw,chr(0)))fail(400,'Passwort muss 12 bis 72 Bytes lang sein.');
  return password_hash($pw,PASSWORD_DEFAULT);
 }
-function create_account(array $v): array {
+function create_account(array $v,?array $actor=null): array {
  $email=valid_email($v['email']??null);$hash=hash_password($v['password']??null);
  $role=$v['role']??'redakteur'; if(!in_array($role,['admin','redakteur','user'],true))fail(400,'Ungültige Rolle.');
  $id=uuid();$name=trim((string)($v['display_name']??''));if(strlen($name)>255)fail(400,'Name zu lang.');
+ $username=valid_username($v['username']??username_base($name?:explode('@',$email)[0]));
  if(stmt('SELECT id FROM profiles WHERE email=?',[$email])->fetch())fail(409,'Diese E-Mail ist bereits registriert.');
- stmt('INSERT INTO profiles (id,email,display_name,password_hash) VALUES (?,?,?,?)',[$id,$email,$name,$hash]);
+ if(stmt('SELECT id FROM profiles WHERE username=?',[$username])->fetch())fail(409,'Dieser Benutzername ist bereits vergeben.');
+ try {stmt('INSERT INTO profiles (id,email,display_name,username,password_hash,last_edit_by,last_edit_at) VALUES (?,?,?,?,?,?,UTC_TIMESTAMP())',[$id,$email,$name,$username,$hash,$actor['username']??$username]);}
+ catch(PDOException $e){if((int)($e->errorInfo[1]??0)===1062)fail(409,'E-Mail oder Benutzername bereits vergeben.');throw $e;}
  stmt('INSERT INTO user_roles (id,user_id,role) VALUES (?,?,?)',[uuid(),$id,$role]);
- return ['id'=>$id,'email'=>$email,'display_name'=>$name,'role'=>$role];
+ return ['id'=>$id,'email'=>$email,'display_name'=>$name,'username'=>$username,'role'=>$role];
 }
 function json_response(mixed $data=null,int $status=200,?string $error=null): never {
  http_response_code($status);header('Content-Type: application/json; charset=utf-8');

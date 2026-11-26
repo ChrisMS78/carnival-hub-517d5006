@@ -3,7 +3,7 @@ import type { Tables, Database } from './siteTypes';
 type Result<T> = { data: T | null; error: Error | null };
 type Table = keyof Database['public']['Tables'];
 type Role = 'admin' | 'redakteur' | 'user';
-export type Account = { id: string; email: string; display_name: string | null; role: Role };
+export type Account = { id: string; email: string; display_name: string | null; username: string; role: Role };
 
 async function call<T>(action: string, body: unknown = {}): Promise<Result<T>> {
   try {
@@ -42,10 +42,11 @@ class Query<T> implements PromiseLike<Result<T>> {
 const urls = new Map<string, string>();
 export const siteApi = {
   from<K extends Table>(table: K) { return new Query<Tables<K>[]>({ table, op: 'select' }); },
-  login(email: string, password: string) { return call<Account>('login', { email, password }); },
+  login(identifier: string, password: string) { return call<Account>('login', { identifier, password }); },
   me() { return call<Account>('me'); },
   logout() { return call<null>('logout'); },
-  createUser(data: { email: string; password: string; password_confirmation: string; display_name: string; role: Role }) { return call<Account>('create-user', data); },
+  createUser(data: { email: string; password: string; password_confirmation: string; display_name: string; username: string; role: Role }) { return call<Account>('create-user', data); },
+  deleteUser(id: string) { return call<null>('delete-user', { id }); },
   changePassword(userId: string, newPassword: string) { return call<{ error?: string }>('password', { userId, newPassword }); },
   rebuildThumbnail(id: string) { return call<{id: string; thumbnail_url: string}>('rebuild-thumbnail', { id }); },
   albumUpload(albumId: string, file: File) {

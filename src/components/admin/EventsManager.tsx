@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { siteApi } from "@/lib/siteApi";
+import { LastEdit } from "./LastEdit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -289,7 +290,7 @@ export default function EventsManager() {
             <Card key={event.id}>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">{event.title}</CardTitle>
+                  <div className="min-w-0"><CardTitle className="text-lg">{event.title}</CardTitle><LastEdit record={event} /></div>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="sm" onClick={() => handleMoveUp(index)} disabled={index === 0}>
                       <ArrowUp className="w-4 h-4" />

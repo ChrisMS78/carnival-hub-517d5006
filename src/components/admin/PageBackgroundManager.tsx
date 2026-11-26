@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { siteApi } from "@/lib/siteApi";
+import { LastEdit } from "./LastEdit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,8 @@ interface PageBackground {
   page_key: string;
   page_label: string;
   background_url: string | null;
+  last_edit_by?: string | null;
+  last_edit_at?: string | null;
 }
 
 export default function PageBackgroundManager() {
@@ -109,6 +112,7 @@ export default function PageBackgroundManager() {
                 <Image className="w-5 h-5" />
                 {page.page_label}
               </CardTitle>
+              <LastEdit record={page} />
             </CardHeader>
             <CardContent className="space-y-4">
               {page.background_url ? (

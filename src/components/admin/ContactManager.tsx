@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { siteApi } from "@/lib/siteApi";
+import { LastEdit } from "./LastEdit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -127,6 +128,7 @@ export default function ContactManager() {
                   <p className="font-medium mb-2">{submission.subject}</p>
                 )}
                 <p className="text-sm whitespace-pre-wrap">{submission.message}</p>
+                <LastEdit record={submission} />
               </CardContent>
             </Card>
           ))}

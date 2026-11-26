@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { siteApi } from "@/lib/siteApi";
+import { LastEdit } from "./LastEdit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,15 +56,16 @@ export default function SiteSettingsManager() {
 
     try {
       // Update all changed settings
-      const updates = settings.map((setting) =>
+      const updates = settings.filter((setting) => (setting.value || "") !== editedValues[setting.key]).map((setting) =>
         siteApi
           .from("site_settings")
           .update({ value: editedValues[setting.key], updated_at: new Date().toISOString() })
           .eq("key", setting.key)
       );
 
-      await Promise.all(updates);
-      toast.success("Einstellungen gespeichert");
+      const results = await Promise.all(updates);
+      if (results.some((result) => result.error)) toast.error("Einige Einstellungen konnten nicht gespeichert werden.");
+      else toast.success(updates.length ? "Einstellungen gespeichert" : "Keine Änderungen vorhanden");
       fetchSettings();
     } catch {
       toast.error("Fehler beim Speichern");
@@ -147,6 +149,7 @@ export default function SiteSettingsManager() {
                           )}
                         </>
                       )}
+                      <LastEdit record={setting} />
                     </div>
                   ))}
               </CardContent>

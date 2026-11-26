@@ -37,3 +37,9 @@ The frontend expects the PHP API at /api/index.php; the Vite dev server alone do
 ## Account creation
 
 New accounts require matching password and password confirmation (validated by PHP as well as the UI). No automatic account notification email is sent.
+
+## Usernames and edit attribution (schema v2)
+
+The API automatically applies an additive migration on its first request after deployment. Existing passwords, roles, IDs and content are preserved. Existing usernames are derived from display names, normalized to lowercase ASCII, with numeric suffixes for collisions. New accounts require a unique username. Login accepts username or email.
+Administrators can permanently delete other accounts; the role is removed via the existing foreign key. The current account and last active administrator are protected. Deactivation remains separate. Created content is not deleted.
+The last editor username and UTC timestamp are stored on content and user records at creation/change; album operations also stamp the parent album. Existing entries without historical metadata show Unknown. Editor metadata is returned only to authorized administrative users, not anonymous visitors. Snapshots survive account deletion. This is not a full audit history.

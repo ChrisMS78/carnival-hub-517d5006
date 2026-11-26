@@ -12,7 +12,7 @@ const COLS=[
  'contact_submissions'=>['id','name','email','subject','message','is_read','created_at'],
  'site_settings'=>['id','key','value','label','category','created_at','updated_at'],
  'page_backgrounds'=>['id','page_key','page_label','background_url','created_at','updated_at'],
- 'profiles'=>['id','email','display_name','is_active','created_at'],
+ 'profiles'=>['id','email','display_name','username','is_active','created_at'],
  'user_roles'=>['id','user_id','role']
 ];
 const WRITE=[
@@ -53,7 +53,7 @@ function query(array $q): mixed {
  $editor=in_array($table,['events','about_content','gallery_albums','gallery_images'],true);
  $contactInsert=$table==='contact_submissions'&&$op==='insert';
  $actor=null;
- if($op==='select'){if(!$public)$actor=require_role(['admin']);}
+ if($op==='select'){if(!$public)$actor=require_role(['admin']);else $actor=current_user();}
  elseif($contactInsert){rate_limit('contact',5,3600);}
  else $actor=require_role($editor?['admin','redakteur']:['admin']);
  $where=[];$args=[];
@@ -68,7 +68,10 @@ function query(array $q): mixed {
  $w=$where?' WHERE '.implode(' AND ',$where):'';$t='`'.$table.'`';
  if($op==='select'){
   $fields=trim((string)($q['columns']??'*'));$fields=$fields==='*'?COLS[$table]:array_map('trim',explode(',',$fields));
-  $s='SELECT '.implode(',',array_map(fn($x)=>col($table,$x),$fields)).' FROM '.$t.$w;
+  $projection=array_map(fn($x)=>col($table,$x),$fields);
+  // Audit data is never included in anonymous responses or allowed in public filters.
+  if(trim((string)($q['columns']??'*'))==='*'&&in_array($table,EDIT_TABLES,true)&&in_array($actor['role']??null,$editor?['admin','redakteur']:['admin'],true))array_push($projection,'last_edit_by','last_edit_at');
+  $s='SELECT '.implode(',',$projection).' FROM '.$t.$w;
   $orders=[];foreach(($q['orders']??[]) as $o)$orders[]=col($table,$o['field']??null).(($o['ascending']??true)?' ASC':' DESC');
   if($orders)$s.=' ORDER BY '.implode(',',$orders);
   if(isset($q['limit']))$s.=' LIMIT '.max(0,min(10000,(int)$q['limit']));
@@ -89,6 +92,7 @@ function query(array $q): mixed {
      while(stmt('SELECT id FROM gallery_albums WHERE folder=?',[$folder])->fetch()||is_dir(dirname(__DIR__).'/bilder/'.$folder))$folder=$base.'_'.($i++);
      $v['folder']=$folder;
     }
+    if($actor&&in_array($table,EDIT_TABLES,true)){$v['last_edit_by']=$actor['username'];$v['last_edit_at']=gmdate('Y-m-d H:i:s');}
     insert_row($table,$v);
    }db()->commit();
   }catch(Throwable $e){db()->rollBack();throw $e;}return null;
@@ -96,33 +100,59 @@ function query(array $q): mixed {
  if(!$where)fail(400,'Filter erforderlich.');
  if(in_array($table,['profiles','user_roles'],true)){
   if($op!=='update'||count($args)!==1||count($where)!==1||$where[0]!==($table==='profiles'?"`id`=?":"`user_id`=?"))fail(403,'Benutzeränderung nicht erlaubt.');
-  if($args[0]===$actor['id'])fail(403,'Eigene Rolle oder Aktivierung kann nicht geändert werden.');
+  $v=values_for($table,$q['values']??null,WRITE[$table]);if(!$v)return null;
+  return admin_account_change(function($admin)use($table,$args,$v){
+   $id=(string)$args[0];$removes=$table==='profiles'?empty($v['is_active']):$v['role']!=='admin';
+   $target=guard_account($id,$admin,$removes);
+   db()->beginTransaction();try{
+    if($table==='profiles'){
+     if((bool)$target['is_active']!==(bool)$v['is_active'])stmt('UPDATE profiles SET is_active=?,last_edit_by=?,last_edit_at=UTC_TIMESTAMP() WHERE id=?',[$v['is_active'],$admin['username'],$id]);
+    }elseif($target['role']!==$v['role']){
+     stmt('UPDATE user_roles SET role=? WHERE user_id=?',[$v['role'],$id]);
+     stmt('UPDATE profiles SET last_edit_by=?,last_edit_at=UTC_TIMESTAMP() WHERE id=?',[$admin['username'],$id]);
+    }
+    db()->commit();
+   }catch(Throwable $e){db()->rollBack();throw $e;}return null;
+  });
  }
  if($op==='update'){
   $v=values_for($table,$q['values']??null,WRITE[$table]);if(!$v)return null;
-  $sets=[];foreach($v as $k=>$val)$sets[]=col($table,$k).'=?';
-  stmt('UPDATE '.$t.' SET '.implode(',',$sets).$w,[...array_values($v),...$args]);return null;
+  $sets=[];$different=[];foreach($v as $k=>$val){$c=col($table,$k);$sets[]=$c.'=?';$different[]='NOT (CAST('.$c.' AS BINARY) <=> CAST(? AS BINARY))';}
+  $match=$w.' AND ('.implode(' OR ',$different).')';$params=[...$args,...array_values($v)];
+  db()->beginTransaction();try{
+   $albums=$table==='gallery_images'?stmt('SELECT DISTINCT album_id FROM '.$t.$match,$params)->fetchAll(PDO::FETCH_COLUMN):[];
+   $sets[]='last_edit_by=?';$sets[]='last_edit_at=UTC_TIMESTAMP()';
+   stmt('UPDATE '.$t.' SET '.implode(',',$sets).$match,[...array_values($v),$actor['username'],...$params]);
+   foreach($albums as $album)stamp_album($album,$actor);
+   db()->commit();
+  }catch(Throwable $e){db()->rollBack();throw $e;}return null;
  }
  if(!in_array($table,['events','about_content','gallery_albums','gallery_images','contact_submissions'],true))fail(403,'Löschen nicht erlaubt.');
- $media=[];db()->beginTransaction();try{
+ $media=[];$affectedAlbums=[];db()->beginTransaction();try{
   if($table==='gallery_albums'||$table==='gallery_images'){
    $rows=stmt('SELECT * FROM '.$t.$w.' FOR UPDATE',$args)->fetchAll();
    foreach($rows as $row){
+    if($table==='gallery_images')$affectedAlbums[$row['album_id']]=true;
     $images=$table==='gallery_albums'?stmt('SELECT image_url,thumbnail_url FROM gallery_images WHERE album_id=?',[$row['id']])->fetchAll():[$row];
     foreach($images as $im){$media[]=$im['image_url'];$media[]=$im['thumbnail_url'];}
    }
   }
-  stmt('DELETE FROM '.$t.$w,$args);db()->commit();
+  stmt('DELETE FROM '.$t.$w,$args);
+  foreach(array_keys($affectedAlbums) as $album)stamp_album($album,$actor);
+  db()->commit();
  }catch(Throwable $e){db()->rollBack();throw $e;}
  foreach($media as $url)delete_media($url);return null;
 }
 try {
- csrf();$action=$_GET['action']??'';
+ csrf();ensure_schema();$action=$_GET['action']??'';
  if($action==='me')json_response(current_user());
  if($action==='login'){
-  rate_limit('login',15,900);$v=input();$email=valid_email($v['email']??null);$pw=$v['password']??'';
+  rate_limit('login',15,900);$v=input();$identity=$v['identifier']??$v['email']??'';$pw=$v['password']??'';
+  if(!is_string($identity)||strlen($identity)>254||trim($identity)==='')fail(401,'Ungültige Anmeldedaten.');
+  $identity=strtolower(trim($identity));
+  if(!str_contains($identity,'@')&&!preg_match('/^[a-z0-9][a-z0-9._-]{2,63}$/D',$identity))fail(401,'Ungültige Anmeldedaten.');
   if(!is_string($pw)||strlen($pw)>72)fail(401,'Ungültige Anmeldedaten.');
-  $u=stmt('SELECT p.*,r.role FROM profiles p LEFT JOIN user_roles r ON p.id=r.user_id WHERE p.email=?',[$email])->fetch();
+  $u=stmt('SELECT p.*,r.role FROM profiles p LEFT JOIN user_roles r ON p.id=r.user_id WHERE p.'.(str_contains($identity,'@')?'email':'username').'=?',[$identity])->fetch();
   $hash=$u['password_hash']??'$2y$12$LQv3c1yqBWVHxkd0LHAkCOYv5hZJNC6p2V3HYweM0vhsPv6shPrUe';
   if(!password_verify($pw,$hash)||!$u||!$u['is_active'])fail(401,'Ungültige Anmeldedaten.');
   session_regenerate_id(true);$_SESSION=['uid'=>$u['id'],'last'=>time(),'version'=>hash('sha256',$hash)];
@@ -130,13 +160,25 @@ try {
  }
  if($action==='logout'){$_SESSION=[];session_destroy();setcookie(session_name(),'', ['expires'=>time()-3600,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Strict']);json_response();}
  if($action==='create-user'){
-  require_role(['admin']);$v=input();
+  $actor=require_role(['admin']);$v=input();
   if(!is_string($v['password']??null)||!is_string($v['password_confirmation']??null)||$v['password']!==$v['password_confirmation'])fail(400,'Die Passwörter stimmen nicht überein.');
   db()->beginTransaction();
-  try{$u=create_account($v);db()->commit();}catch(Throwable $e){db()->rollBack();throw $e;}
+  try{$u=create_account($v,$actor);db()->commit();}catch(Throwable $e){db()->rollBack();throw $e;}
   json_response($u);
  }
- if($action==='password'){require_role(['admin']);$v=input();$hash=hash_password($v['newPassword']??null);stmt('UPDATE profiles SET password_hash=? WHERE id=?',[$hash,(string)($v['userId']??'')]);json_response();}
+ if($action==='delete-user'){
+  $v=input();$id=(string)($v['id']??'');
+  admin_account_change(function($actor)use($id){
+   guard_account($id,$actor,true);
+   // The foreign key removes the assigned role; all content and editor snapshots remain.
+   if(stmt('DELETE FROM profiles WHERE id=?',[$id])->rowCount()!==1)fail(404,'Benutzer nicht gefunden.');
+  });json_response();
+ }
+ if($action==='password'){
+  $actor=require_role(['admin']);$v=input();$hash=hash_password($v['newPassword']??null);
+  if(stmt('UPDATE profiles SET password_hash=?,last_edit_by=?,last_edit_at=UTC_TIMESTAMP() WHERE id=?',[$hash,$actor['username'],(string)($v['userId']??'')])->rowCount()!==1)fail(404,'Benutzer nicht gefunden.');
+  json_response();
+ }
  if($action==='query')json_response(query(input()));
  if($action==='album-upload')json_response(album_upload((string)($_POST['albumId']??'')));
  if($action==='rebuild-thumbnail'){ $v=input();json_response(rebuild_thumbnail((string)($v['id']??''))); }

@@ -7,7 +7,7 @@ interface AuthContextType {
   isRedakteur: boolean;
   hasBackendAccess: boolean;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (identifier: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,8 +21,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     siteApi.me().then(({ data }) => { if (active) { setUser(data); setIsLoading(false); } });
     return () => { active = false; };
   }, []);
-  const signIn = async (email: string, password: string) => {
-    const result = await siteApi.login(email, password);
+  const signIn = async (identifier: string, password: string) => {
+    const result = await siteApi.login(identifier, password);
     setUser(result.data);
     return { error: result.error };
   };

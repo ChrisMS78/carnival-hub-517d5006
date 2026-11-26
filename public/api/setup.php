@@ -20,6 +20,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    $email=valid_email($_POST['email']??null);hash_password($_POST['password']??null);
    media_dir('bilder');media_dir('dokumente');
    foreach(explode(';',file_get_contents(__DIR__.'/schema.sql')) as $sql)if(trim($sql)!=='')$pdo->exec($sql);
+   ensure_schema();
    $pdo->beginTransaction();
    try{create_account(['email'=>$email,'password'=>$_POST['password'],'display_name'=>'Administrator','role'=>'admin']);$pdo->commit();}
    catch(Throwable $e){$pdo->rollBack();throw $e;}

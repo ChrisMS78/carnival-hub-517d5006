@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, DragEvent, FormEvent, MouseEvent } from "react";
 import { siteApi } from "@/lib/siteApi";
+import { LastEdit } from "./LastEdit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -245,7 +246,7 @@ export default function GalleryManager() {
       else uploaded++;
     }
     if (uploaded) toast.success(uploaded + " Bilder hochgeladen");
-    fetchImages(selectedAlbum.id);
+    await Promise.all([fetchImages(selectedAlbum.id), fetchAlbums()]);
     setIsUploading(false);
     event.target.value = "";
   };
@@ -263,6 +264,7 @@ export default function GalleryManager() {
         setThumbnailProgress({ done: ++done, total: ids.length });
       }
       setThumbnailVersion(Date.now());
+      await Promise.all([fetchImages(selectedAlbum.id), fetchAlbums()]);
       if (failed) toast.error(failed + " Vorschaubilder konnten nicht erneuert werden.");
       if (done > failed) toast.success((done - failed) + " Vorschaubilder erneuert.");
     } finally {
@@ -282,7 +284,7 @@ export default function GalleryManager() {
       toast.error("Fehler beim Löschen");
     } else {
       toast.success("Bild gelöscht");
-      if (selectedAlbum) fetchImages(selectedAlbum.id);
+      if (selectedAlbum) await Promise.all([fetchImages(selectedAlbum.id), fetchAlbums()]);
     }
   };
 
@@ -308,6 +310,7 @@ export default function GalleryManager() {
       return;
     }
 
+    if (selectedAlbum) await Promise.all([fetchImages(selectedAlbum.id), fetchAlbums()]);
     toast.success("Bild-Reihenfolge gespeichert");
   };
 
@@ -464,7 +467,7 @@ export default function GalleryManager() {
               >
                 <CardHeader className="py-3">
                   <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-sm">{album.title}</CardTitle>
+                    <div className="min-w-0"><CardTitle className="text-sm">{album.title}</CardTitle><LastEdit record={album} /></div>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -553,8 +556,8 @@ export default function GalleryManager() {
             ) : (
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                 {images.map((image, index) => (
+                  <div key={image.id} className="min-w-0">
                   <div
-                    key={image.id}
                     draggable
                     onDragStart={() => handleImageDragStart(index)}
                     onDragOver={handleImageDragOver}
@@ -634,6 +637,8 @@ export default function GalleryManager() {
                     <div className="absolute bottom-2 left-2 rounded-md bg-black/60 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
                       Position {index + 1}
                     </div>
+                  </div>
+                  <LastEdit record={image} />
                   </div>
                 ))}
               </div>

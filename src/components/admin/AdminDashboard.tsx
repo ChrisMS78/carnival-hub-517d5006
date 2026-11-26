@@ -29,10 +29,10 @@ export default function AdminDashboard() {
             <Link to="/" className="text-2xl font-display font-bold text-primary">
               K.E.B e.V.
             </Link>
-            <span className="text-muted-foreground">Admin</span>
+            <span className="text-muted-foreground">{isAdmin ? "Admin" : "Redakteur"}</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
+            <span className="text-sm text-muted-foreground hidden sm:block">{user?.username || user?.email}</span>
             <Link to="/">
               <Button variant="outline" size="sm">
                 <Home className="w-4 h-4 mr-2" />

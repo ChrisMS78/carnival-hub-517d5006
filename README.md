@@ -23,7 +23,7 @@ No old data is imported. The initial data must be entered manually.
 Gallery images: /bilder/<album-folder>/<album-folder>_001.jpg and _001_small.jpg.
 The album folder is assigned at creation and remains stable when the display title changes.
 The original upload is discarded; maximum 400000 bytes and 1600 px for the large image,
-50000 bytes and 300 px for the thumbnail. JPEG, PNG, WebP and GIF input are supported.
+180000 bytes and 900 px for the thumbnail. Existing thumbnails can be regenerated in the gallery administration from the stored full-size JPEG. JPEG, PNG, WebP and GIF input are supported.
 Other site images use dedicated folders under /bilder; PDFs are under /dokumente.
 Previous non-gallery media are retained for recovery. Back up both upload directories and the MySQL database.
 

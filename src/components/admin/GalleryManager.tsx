@@ -38,6 +38,8 @@ export default function GalleryManager() {
   const [isAlbumDialogOpen, setIsAlbumDialogOpen] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [thumbnailProgress, setThumbnailProgress] = useState<{ done: number; total: number } | null>(null);
+  const [thumbnailVersion, setThumbnailVersion] = useState(0);
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
   const [albumFormData, setAlbumFormData] = useState({
     title: "",
@@ -246,6 +248,26 @@ export default function GalleryManager() {
     fetchImages(selectedAlbum.id);
     setIsUploading(false);
     event.target.value = "";
+  };
+
+  const handleRebuildThumbnails = async () => {
+    if (!selectedAlbum || !images.length || thumbnailProgress || isUploading) return;
+    const ids = images.map((image) => image.id);
+    let done = 0;
+    let failed = 0;
+    setThumbnailProgress({ done, total: ids.length });
+    try {
+      for (const id of ids) {
+        const { error } = await siteApi.rebuildThumbnail(id);
+        if (error) failed++;
+        setThumbnailProgress({ done: ++done, total: ids.length });
+      }
+      setThumbnailVersion(Date.now());
+      if (failed) toast.error(failed + " Vorschaubilder konnten nicht erneuert werden.");
+      if (done > failed) toast.success((done - failed) + " Vorschaubilder erneuert.");
+    } finally {
+      setThumbnailProgress(null);
+    }
   };
 
   const handleImageDelete = async (image: GalleryImage) => {
@@ -495,7 +517,10 @@ export default function GalleryManager() {
             </h3>
 
             {selectedAlbum && (
-              <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" onClick={handleRebuildThumbnails} disabled={!images.length || isUploading || !!thumbnailProgress}>
+                  {thumbnailProgress ? `Erneuere ${thumbnailProgress.done}/${thumbnailProgress.total}` : "Vorschaubilder erneuern"}
+                </Button>
                 <Input
                   type="file"
                   accept="image/*"
@@ -503,10 +528,10 @@ export default function GalleryManager() {
                   onChange={handleImageUpload}
                   className="hidden"
                   id="image-upload"
-                  disabled={isUploading}
+                  disabled={isUploading || !!thumbnailProgress}
                 />
                 <Label htmlFor="image-upload" className="cursor-pointer">
-                  <Button asChild disabled={isUploading}>
+                  <Button asChild disabled={isUploading || !!thumbnailProgress}>
                     <span>
                       <Upload className="mr-2 h-4 w-4" />
                       {isUploading ? "Hochladen..." : "Bilder hochladen"}
@@ -540,7 +565,7 @@ export default function GalleryManager() {
                     }`}
                   >
                     <img
-                      src={image.thumbnail_url || image.image_url}
+                      src={(image.thumbnail_url || image.image_url) + (thumbnailVersion ? `?v=${thumbnailVersion}` : '')}
                       alt={image.caption || ""}
                       className="h-full w-full rounded-lg object-cover"
                     />

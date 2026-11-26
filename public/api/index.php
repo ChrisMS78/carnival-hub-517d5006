@@ -133,6 +133,7 @@ try {
  if($action==='password'){require_role(['admin']);$v=input();$hash=hash_password($v['newPassword']??null);stmt('UPDATE profiles SET password_hash=? WHERE id=?',[$hash,(string)($v['userId']??'')]);json_response();}
  if($action==='query')json_response(query(input()));
  if($action==='album-upload')json_response(album_upload((string)($_POST['albumId']??'')));
+ if($action==='rebuild-thumbnail'){ $v=input();json_response(rebuild_thumbnail((string)($v['id']??''))); }
  if($action==='upload')json_response(other_upload((string)($_POST['bucket']??''),(string)($_POST['name']??'')));
  // Media referenced by non-gallery content is intentionally retained for recovery.
  fail(404,'Unbekannte Funktion.');

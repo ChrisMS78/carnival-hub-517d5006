@@ -47,6 +47,7 @@ export const siteApi = {
   logout() { return call<null>('logout'); },
   createUser(data: { email: string; password: string; display_name: string; role: Role }) { return call<Account>('create-user', data); },
   changePassword(userId: string, newPassword: string) { return call<{ error?: string }>('password', { userId, newPassword }); },
+  rebuildThumbnail(id: string) { return call<{id: string; thumbnail_url: string}>('rebuild-thumbnail', { id }); },
   albumUpload(albumId: string, file: File) {
     const f = new FormData(); f.append('albumId', albumId); f.append('file', file);
     return call<Tables<'gallery_images'>>('album-upload', f);

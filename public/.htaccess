@@ -1,12 +1,15 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
-
-  # Existing files and folders should be served directly
+  # Only serve generated JPG/PDF files from persistent upload directories.
+  RewriteRule ^bilder/(?![A-Za-z0-9_-]+/[A-Za-z0-9_-]+\.jpg$) - [F,L,NC]
+  RewriteRule ^dokumente/(?![A-Za-z0-9_-]+\.pdf$) - [F,L,NC]
+  RewriteRule ^data(?:/|$) - [F,L,NC]
+  RewriteRule ^(?:api|bilder|dokumente)/?$ - [F,L,NC]
+  RewriteRule ^api/(?:config\.php|schema\.sql|bootstrap\.php|images\.php)(?:/|$) - [F,L,NC]
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
-
-  # React/Vite SPA fallback
+  RewriteRule ^(?:api|bilder|dokumente)(?:/|$) - [R=404,L]
   RewriteRule ^ index.html [L]
 </IfModule>

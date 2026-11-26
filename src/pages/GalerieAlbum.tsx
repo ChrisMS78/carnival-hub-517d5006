@@ -6,9 +6,9 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 import { usePageBackground } from "@/hooks/usePageBackground";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/lib/siteTypes";
 
 type Album = Tables<"gallery_albums">;
 type GalleryImage = Tables<"gallery_images">;
@@ -32,7 +32,7 @@ export default function GalerieAlbum() {
       return;
     }
 
-    const { data: albumData, error: albumError } = await supabase
+    const { data: albumData, error: albumError } = await siteApi
       .from("gallery_albums")
       .select("*")
       .eq("id", albumId)
@@ -44,7 +44,7 @@ export default function GalerieAlbum() {
       return;
     }
 
-    const { data: imagesData, error: imagesError } = await supabase
+    const { data: imagesData, error: imagesError } = await siteApi
       .from("gallery_images")
       .select("*")
       .eq("album_id", albumId)
@@ -135,7 +135,7 @@ export default function GalerieAlbum() {
                     className="group overflow-hidden rounded-xl shadow-md transition hover:scale-[1.02] hover:shadow-xl"
                   >
                     <img
-                      src={image.image_url}
+                      src={image.thumbnail_url || image.image_url}
                       alt={image.alt_text || album.title}
                       className="h-64 w-full object-cover transition group-hover:brightness-90"
                     />

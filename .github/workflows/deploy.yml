@@ -1,7 +1,9 @@
 name: Build and Deploy to HostEurope
 
 on:
-  # Manual deployment during backend migration
+  # Pushes validate the build only; deployment is explicitly triggered.
+  push:
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -24,7 +26,29 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: PHP syntax check
+        run: find dist/api -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Generate protected server configuration
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          KEB_DB_PASSWORD: ${{ secrets.KEB_DB_PASSWORD }}
+          KEB_SETUP_TOKEN: ${{ secrets.KEB_SETUP_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os, json, base64
+          from pathlib import Path
+          password = os.environ["KEB_DB_PASSWORD"]
+          token = os.environ["KEB_SETUP_TOKEN"]
+          if not password or len(token) < 32:
+              raise SystemExit("Required repository secrets missing or setup token too short")
+          config = dict(host="wp678.webpack.hosteurope.de", database="db1137259-keb", username="db1137259-keb", password=password, setup_token=token)
+          encoded = base64.b64encode(json.dumps(config).encode()).decode()
+          Path("dist/api/config.php").write_text("<?php\nreturn json_decode(base64_decode('" + encoded + "'), true);\n")
+          PY
+
       - name: Deploy via FTPS
+        if: github.event_name == 'workflow_dispatch'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -45,4 +69,4 @@ jobs:
             bilder/**
             dokumente/**
             data/**
-          log-level: verbose
+          log-level: minimal

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Plus, Pencil, Trash2, Calendar, MapPin, Clock, ArrowUp, ArrowDown, Imag
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/lib/siteTypes";
 
 type Event = Tables<"events">;
 
@@ -34,7 +34,7 @@ export default function EventsManager() {
   }, []);
 
   const fetchEvents = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await siteApi
       .from("events")
       .select("*")
       .order("sort_order", { ascending: true })
@@ -53,8 +53,8 @@ export default function EventsManager() {
     
     // Use index-based values to ensure unique sort orders
     await Promise.all([
-      supabase.from("events").update({ sort_order: index - 1 }).eq("id", events[index].id),
-      supabase.from("events").update({ sort_order: index }).eq("id", events[index - 1].id),
+      siteApi.from("events").update({ sort_order: index - 1 }).eq("id", events[index].id),
+      siteApi.from("events").update({ sort_order: index }).eq("id", events[index - 1].id),
     ]);
     
     fetchEvents();
@@ -65,8 +65,8 @@ export default function EventsManager() {
     
     // Use index-based values to ensure unique sort orders
     await Promise.all([
-      supabase.from("events").update({ sort_order: index + 1 }).eq("id", events[index].id),
-      supabase.from("events").update({ sort_order: index }).eq("id", events[index + 1].id),
+      siteApi.from("events").update({ sort_order: index + 1 }).eq("id", events[index].id),
+      siteApi.from("events").update({ sort_order: index }).eq("id", events[index + 1].id),
     ]);
     
     fetchEvents();
@@ -83,7 +83,7 @@ export default function EventsManager() {
       const fileExt = imageFile.name.split(".").pop();
       const fileName = `events/${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await siteApi.storage
         .from("gallery")
         .upload(fileName, imageFile);
 
@@ -93,7 +93,7 @@ export default function EventsManager() {
         return;
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = siteApi.storage
         .from("gallery")
         .getPublicUrl(fileName);
 
@@ -103,7 +103,7 @@ export default function EventsManager() {
     const dataToSave = { ...formData, image_url: imageUrl };
 
     if (editingEvent) {
-      const { error } = await supabase
+      const { error } = await siteApi
         .from("events")
         .update(dataToSave)
         .eq("id", editingEvent.id);
@@ -116,14 +116,14 @@ export default function EventsManager() {
       }
     } else {
       // New items get sort_order -1 to appear first, then normalize all orders
-      const { error } = await supabase.from("events").insert([{ ...dataToSave, sort_order: -1 }]);
+      const { error } = await siteApi.from("events").insert([{ ...dataToSave, sort_order: -1 }]);
 
       if (error) {
         toast.error("Fehler beim Erstellen");
       } else {
         toast.success("Termin erstellt");
         // Normalize sort orders after insert
-        const { data: allEvents } = await supabase
+        const { data: allEvents } = await siteApi
           .from("events")
           .select("id")
           .order("sort_order", { ascending: true })
@@ -132,7 +132,7 @@ export default function EventsManager() {
         if (allEvents) {
           await Promise.all(
             allEvents.map((event, idx) =>
-              supabase.from("events").update({ sort_order: idx }).eq("id", event.id)
+              siteApi.from("events").update({ sort_order: idx }).eq("id", event.id)
             )
           );
         }
@@ -147,7 +147,7 @@ export default function EventsManager() {
   const handleDelete = async (id: string) => {
     if (!confirm("Möchten Sie diesen Termin wirklich löschen?")) return;
 
-    const { error } = await supabase.from("events").delete().eq("id", id);
+    const { error } = await siteApi.from("events").delete().eq("id", id);
 
     if (error) {
       toast.error("Fehler beim Löschen");

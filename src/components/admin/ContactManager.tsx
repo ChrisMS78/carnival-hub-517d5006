@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,7 @@ import { Mail, Check, Trash2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/lib/siteTypes";
 
 type ContactSubmission = Tables<"contact_submissions">;
 
@@ -20,7 +20,7 @@ export default function ContactManager() {
   }, []);
 
   const fetchSubmissions = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await siteApi
       .from("contact_submissions")
       .select("*")
       .order("created_at", { ascending: false });
@@ -34,7 +34,7 @@ export default function ContactManager() {
   };
 
   const markAsRead = async (id: string) => {
-    const { error } = await supabase
+    const { error } = await siteApi
       .from("contact_submissions")
       .update({ is_read: true })
       .eq("id", id);
@@ -47,7 +47,7 @@ export default function ContactManager() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
+    const { error } = await siteApi
       .from("contact_submissions")
       .delete()
       .eq("id", id);

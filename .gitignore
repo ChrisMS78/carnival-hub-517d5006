@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.env
+.env.*
+public/api/config.php
+public/bilder/
+public/dokumente/
+public/data/

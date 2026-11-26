@@ -1,139 +1,40 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-
-type AppRole = 'admin' | 'redakteur' | 'user';
+import { useState, useEffect, createContext, useContext, type ReactNode } from 'react';
+import { siteApi, type Account } from '@/lib/siteApi';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: Account | null;
   isAdmin: boolean;
   isRedakteur: boolean;
   hasBackendAccess: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isRedakteur, setIsRedakteur] = useState(false);
+  const [user, setUser] = useState<Account | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const hasBackendAccess = isAdmin || isRedakteur;
-
+  const isAdmin = user?.role === 'admin';
+  const isRedakteur = user?.role === 'redakteur';
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          setTimeout(() => {
-            checkUserAccess(session.user.id);
-          }, 0);
-        } else {
-          setIsAdmin(false);
-          setIsRedakteur(false);
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkUserAccess(session.user.id);
-      }
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    let active = true;
+    siteApi.me().then(({ data }) => { if (active) { setUser(data); setIsLoading(false); } });
+    return () => { active = false; };
   }, []);
-
-  const checkUserAccess = async (userId: string) => {
-    // Check if user is active
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_active')
-      .eq('id', userId)
-      .maybeSingle();
-
-    // If user is not active, sign them out
-    if (profile && profile.is_active === false) {
-      await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
-      setIsAdmin(false);
-      setIsRedakteur(false);
-      return;
-    }
-
-    // Check user role
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    setIsAdmin(roleData?.role === 'admin');
-    setIsRedakteur(roleData?.role === 'redakteur');
-  };
-
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    
-    if (!error && data.user) {
-      // Check if user is active
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_active')
-        .eq('id', data.user.id)
-        .maybeSingle();
-
-      if (profile && profile.is_active === false) {
-        await supabase.auth.signOut();
-        return { error: new Error('Ihr Konto wurde deaktiviert. Kontaktieren Sie den Administrator.') };
-      }
-    }
-    
-    return { error: error as Error | null };
+    const result = await siteApi.login(email, password);
+    setUser(result.data);
+    return { error: result.error };
   };
-
-  const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: redirectUrl }
-    });
-    return { error: error as Error | null };
-  };
-
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const result = await siteApi.logout();
+    if (result.error) throw result.error;
     setUser(null);
-    setSession(null);
-    setIsAdmin(false);
-    setIsRedakteur(false);
   };
-
-  return (
-    <AuthContext.Provider value={{ user, session, isAdmin, isRedakteur, hasBackendAccess, isLoading, signIn, signUp, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ user, isAdmin, isRedakteur, hasBackendAccess: isAdmin || isRedakteur, isLoading, signIn, signOut }}>{children}</AuthContext.Provider>;
 }
-
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('AuthProvider fehlt');
   return context;
 }

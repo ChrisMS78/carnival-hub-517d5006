@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/lib/siteTypes";
 
 type SiteSetting = Tables<"site_settings">;
 
@@ -30,7 +30,7 @@ export default function SiteSettingsManager() {
   }, []);
 
   const fetchSettings = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await siteApi
       .from("site_settings")
       .select("*")
       .order("category")
@@ -56,7 +56,7 @@ export default function SiteSettingsManager() {
     try {
       // Update all changed settings
       const updates = settings.map((setting) =>
-        supabase
+        siteApi
           .from("site_settings")
           .update({ value: editedValues[setting.key], updated_at: new Date().toISOString() })
           .eq("key", setting.key)

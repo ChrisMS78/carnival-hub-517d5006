@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 
 type SettingsMap = Record<string, string>;
 
@@ -9,7 +9,7 @@ export function useSiteSettings(keys?: string[]) {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      let query = supabase.from("site_settings").select("key, value");
+      let query = siteApi.from("site_settings").select("key, value");
       
       if (keys && keys.length > 0) {
         query = query.in("key", keys);

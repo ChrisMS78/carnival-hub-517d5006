@@ -1,73 +1,35 @@
-# Welcome to your Lovable project
+# K.E.B. e.V. Bösensell
 
-## Project info
+React/Vite frontend with a PHP 8.4 / MySQL 8.4 backend on Host Europe.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Deployment
 
-## How can I edit this code?
+Pushes validate the frontend build and PHP syntax without publishing. Deployment is manually triggered from Actions > Build and Deploy to HostEurope > Run workflow (main).
+Repository secrets: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, KEB_DB_PASSWORD, KEB_SETUP_TOKEN.
+The database configuration is generated in the deployment output and is never committed.
+Upload directories are excluded from synchronization; clean slate must remain disabled.
 
-There are several ways of editing your application.
+## Initial setup
 
-**Use Lovable**
+After a successful deployment open https://keb-ev.de/api/setup.php over HTTPS.
+Enter the setup token and the first administrator email and password (12–72 bytes).
+The installer checks image processing and write access, creates tables and inserts initial settings.
+It rejects further setup requests once a user exists.
+Log in at https://keb-ev.de/admin and populate the site settings, events, gallery and texts.
+No old data is imported. The initial data must be entered manually.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Storage
 
-Changes made via Lovable will be committed automatically to this repo.
+Gallery images: /bilder/<album-folder>/<album-folder>_001.jpg and _001_small.jpg.
+The album folder is assigned at creation and remains stable when the display title changes.
+The original upload is discarded; maximum 400000 bytes and 1600 px for the large image,
+50000 bytes and 300 px for the thumbnail. JPEG, PNG, WebP and GIF input are supported.
+Other site images use dedicated folders under /bilder; PDFs are under /dokumente.
+Previous non-gallery media are retained for recovery. Back up both upload directories and the MySQL database.
 
-**Use your preferred IDE**
+## Local development
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+npm ci
+npm run build
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+The frontend expects the PHP API at /api/index.php; the Vite dev server alone does not run PHP.

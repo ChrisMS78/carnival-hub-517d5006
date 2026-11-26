@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,10 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, UserCheck, UserX, Key } from "lucide-react";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/lib/siteTypes";
 
 type Profile = Tables<"profiles"> & { is_active?: boolean };
-type UserRole = Tables<"user_roles">;
 type AppRole = "admin" | "redakteur";
 
 interface UserWithRole extends Profile {
@@ -21,7 +20,6 @@ interface UserWithRole extends Profile {
 
 export default function UserManager() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
-  const [roles, setRoles] = useState<UserRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
@@ -43,7 +41,7 @@ export default function UserManager() {
     setIsLoading(true);
     
     // Fetch profiles
-    const { data: profiles, error: profilesError } = await supabase
+    const { data: profiles, error: profilesError } = await siteApi
       .from("profiles")
       .select("*")
       .order("created_at", { ascending: false });
@@ -55,7 +53,7 @@ export default function UserManager() {
     }
 
     // Fetch user roles
-    const { data: userRoles, error: rolesError } = await supabase
+    const { data: userRoles, error: rolesError } = await siteApi
       .from("user_roles")
       .select("*");
 
@@ -63,7 +61,6 @@ export default function UserManager() {
       console.error("Error fetching roles:", rolesError);
     }
 
-    setRoles(userRoles || []);
 
     // Combine profiles with roles - show ALL users for admin
     const usersWithRoles: UserWithRole[] = (profiles || []).map((profile) => {
@@ -84,51 +81,9 @@ export default function UserManager() {
     setIsSubmitting(true);
 
     try {
-      // Create the user via Supabase Auth Admin (we'll use edge function for this)
-      // For now, we'll create a simple signup and then add the role
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            display_name: formData.display_name,
-          },
-        },
-      });
-
-      if (signUpError) {
-        if (signUpError.message.includes("already registered")) {
-          toast.error("Diese E-Mail ist bereits registriert");
-        } else {
-          toast.error(signUpError.message);
-        }
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!authData.user) {
-        toast.error("Fehler beim Erstellen des Benutzers");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Update the profile with display_name
-      await supabase
-        .from("profiles")
-        .update({ display_name: formData.display_name, is_active: true })
-        .eq("id", authData.user.id);
-
-      // Add the role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({ user_id: authData.user.id, role: formData.role });
-
-      if (roleError) {
-        toast.error("Benutzer erstellt, aber Rolle konnte nicht zugewiesen werden");
-      } else {
-        toast.success("Benutzer erfolgreich erstellt");
-      }
+      const { error } = await siteApi.createUser(formData);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Benutzer erfolgreich erstellt");
 
       resetForm();
       fetchUsers();
@@ -142,7 +97,7 @@ export default function UserManager() {
   const handleToggleActive = async (user: UserWithRole) => {
     const newActiveState = !user.is_active;
     
-    const { error } = await supabase
+    const { error } = await siteApi
       .from("profiles")
       .update({ is_active: newActiveState })
       .eq("id", user.id);
@@ -156,33 +111,9 @@ export default function UserManager() {
   };
 
   const handleRoleChange = async (user: UserWithRole, newRole: AppRole) => {
-    // First check if role exists
-    const existingRole = roles.find((r) => r.user_id === user.id);
-
-    if (existingRole) {
-      const { error } = await supabase
-        .from("user_roles")
-        .update({ role: newRole })
-        .eq("user_id", user.id);
-
-      if (error) {
-        toast.error("Fehler beim Ändern der Rolle");
-      } else {
-        toast.success("Rolle aktualisiert");
-        fetchUsers();
-      }
-    } else {
-      const { error } = await supabase
-        .from("user_roles")
-        .insert({ user_id: user.id, role: newRole });
-
-      if (error) {
-        toast.error("Fehler beim Zuweisen der Rolle");
-      } else {
-        toast.success("Rolle zugewiesen");
-        fetchUsers();
-      }
-    }
+    const { error } = await siteApi.from("user_roles").update({ role: newRole }).eq("user_id", user.id);
+    if (error) toast.error(error.message);
+    else { toast.success("Rolle aktualisiert"); fetchUsers(); }
   };
 
   const handleDeleteUser = async (user: UserWithRole) => {
@@ -190,11 +121,8 @@ export default function UserManager() {
       return;
     }
 
-    // First delete the role
-    await supabase.from("user_roles").delete().eq("user_id", user.id);
-
-    // Deactivate the user (we can't delete auth.users from client)
-    const { error } = await supabase
+    // Deactivate account without removing its assigned role.
+    const { error } = await siteApi
       .from("profiles")
       .update({ is_active: false })
       .eq("id", user.id);
@@ -215,18 +143,14 @@ export default function UserManager() {
   const handleChangePassword = async () => {
     if (!selectedUserForPassword || !newPassword) return;
     
-    if (newPassword.length < 6) {
-      toast.error("Das Passwort muss mindestens 6 Zeichen haben");
+    if (newPassword.length < 12) {
+      toast.error("Das Passwort muss mindestens 12 Zeichen haben");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await supabase.functions.invoke('update-user-password', {
-        body: { userId: selectedUserForPassword.id, newPassword },
-      });
+      const response = await siteApi.changePassword(selectedUserForPassword.id, newPassword);
 
       if (response.error) {
         toast.error(response.error.message || "Fehler beim Ändern des Passworts");
@@ -297,7 +221,7 @@ export default function UserManager() {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  minLength={6}
+                  minLength={12}
                   required
                 />
               </div>
@@ -405,7 +329,7 @@ export default function UserManager() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Mindestens 6 Zeichen"
-                minLength={6}
+                minLength={12}
               />
             </div>
             <div className="flex gap-2 justify-end">

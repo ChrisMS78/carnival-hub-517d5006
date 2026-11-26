@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, DragEvent, FormEvent, MouseEvent } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/lib/siteTypes";
 
 type Album = Tables<"gallery_albums">;
 type GalleryImage = Tables<"gallery_images">;
@@ -56,7 +56,7 @@ export default function GalleryManager() {
   }, [selectedAlbum]);
 
   const fetchAlbums = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await siteApi
       .from("gallery_albums")
       .select("*")
       .order("sort_order", { ascending: true })
@@ -76,11 +76,11 @@ export default function GalleryManager() {
     if (index === 0) return;
 
     await Promise.all([
-      supabase
+      siteApi
         .from("gallery_albums")
         .update({ sort_order: index - 1 })
         .eq("id", albums[index].id),
-      supabase
+      siteApi
         .from("gallery_albums")
         .update({ sort_order: index })
         .eq("id", albums[index - 1].id),
@@ -94,11 +94,11 @@ export default function GalleryManager() {
     if (index === albums.length - 1) return;
 
     await Promise.all([
-      supabase
+      siteApi
         .from("gallery_albums")
         .update({ sort_order: index + 1 })
         .eq("id", albums[index].id),
-      supabase
+      siteApi
         .from("gallery_albums")
         .update({ sort_order: index })
         .eq("id", albums[index + 1].id),
@@ -108,7 +108,7 @@ export default function GalleryManager() {
   };
 
   const fetchImages = async (albumId: string) => {
-    const { data, error } = await supabase
+    const { data, error } = await siteApi
       .from("gallery_images")
       .select("*")
       .eq("album_id", albumId)
@@ -146,7 +146,7 @@ export default function GalleryManager() {
     }
 
     if (editingAlbum) {
-      const { error } = await supabase
+      const { error } = await siteApi
         .from("gallery_albums")
         .update(albumFormData)
         .eq("id", editingAlbum.id);
@@ -158,7 +158,7 @@ export default function GalleryManager() {
         fetchAlbums();
       }
     } else {
-      const { error } = await supabase
+      const { error } = await siteApi
         .from("gallery_albums")
         .insert([{ ...albumFormData, sort_order: -1 }]);
 
@@ -167,7 +167,7 @@ export default function GalleryManager() {
       } else {
         toast.success("Album erstellt");
 
-        const { data: allAlbums } = await supabase
+        const { data: allAlbums } = await siteApi
           .from("gallery_albums")
           .select("id")
           .order("sort_order", { ascending: true })
@@ -176,7 +176,7 @@ export default function GalleryManager() {
         if (allAlbums) {
           await Promise.all(
             allAlbums.map((album, index) =>
-              supabase
+              siteApi
                 .from("gallery_albums")
                 .update({ sort_order: index })
                 .eq("id", album.id)
@@ -200,7 +200,7 @@ export default function GalleryManager() {
       return;
     }
 
-    const { error } = await supabase.from("gallery_albums").delete().eq("id", id);
+    const { error } = await siteApi.from("gallery_albums").delete().eq("id", id);
 
     if (error) {
       toast.error("Fehler beim Löschen");
@@ -236,37 +236,13 @@ export default function GalleryManager() {
     setIsUploading(true);
     const files = Array.from(event.target.files);
 
+    let uploaded = 0;
     for (const file of files) {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${selectedAlbum.id}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("gallery")
-        .upload(fileName, file);
-
-      if (uploadError) {
-        toast.error(`Fehler beim Hochladen von ${file.name}`);
-        continue;
-      }
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("gallery").getPublicUrl(fileName);
-
-      const { error: insertError } = await supabase.from("gallery_images").insert([
-        {
-          album_id: selectedAlbum.id,
-          image_url: publicUrl,
-          sort_order: images.length,
-        },
-      ]);
-
-      if (insertError) {
-        toast.error(`Fehler beim Speichern von ${file.name}`);
-      }
+      const { error } = await siteApi.albumUpload(selectedAlbum.id, file);
+      if (error) toast.error(file.name + ": " + error.message);
+      else uploaded++;
     }
-
-    toast.success("Bilder hochgeladen");
+    if (uploaded) toast.success(uploaded + " Bilder hochgeladen");
     fetchImages(selectedAlbum.id);
     setIsUploading(false);
     event.target.value = "";
@@ -275,12 +251,7 @@ export default function GalleryManager() {
   const handleImageDelete = async (image: GalleryImage) => {
     if (!confirm("Möchten Sie dieses Bild wirklich löschen?")) return;
 
-    const urlParts = image.image_url.split("/gallery/");
-    if (urlParts[1]) {
-      await supabase.storage.from("gallery").remove([urlParts[1]]);
-    }
-
-    const { error } = await supabase
+    const { error } = await siteApi
       .from("gallery_images")
       .delete()
       .eq("id", image.id);
@@ -298,7 +269,7 @@ export default function GalleryManager() {
 
     const updateResults = await Promise.all(
       orderedImages.map((image, index) =>
-        supabase
+        siteApi
           .from("gallery_images")
           .update({ sort_order: index })
           .eq("id", image.id)
@@ -569,7 +540,7 @@ export default function GalleryManager() {
                     }`}
                   >
                     <img
-                      src={image.image_url}
+                      src={image.thumbnail_url || image.image_url}
                       alt={image.caption || ""}
                       className="h-full w-full rounded-lg object-cover"
                     />

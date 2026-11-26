@@ -5,8 +5,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Images } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import { siteApi } from "@/lib/siteApi";
+import type { Tables } from "@/lib/siteTypes";
 
 type Album = Tables<"gallery_albums">;
 type GalleryImage = Tables<"gallery_images">;
@@ -27,7 +27,7 @@ export function GalleryPreview() {
   const fetchGalleryPreview = async () => {
     setIsLoading(true);
 
-    const { data: albumsData, error: albumsError } = await supabase
+    const { data: albumsData, error: albumsError } = await siteApi
       .from("gallery_albums")
       .select("*")
       .order("event_date", { ascending: false })
@@ -43,7 +43,7 @@ export function GalleryPreview() {
 
     const items: GalleryPreviewItem[] = await Promise.all(
       (albumsData || []).map(async (album) => {
-        const { data: imagesData, error: imagesError } = await supabase
+        const { data: imagesData, error: imagesError } = await siteApi
           .from("gallery_images")
           .select("*")
           .eq("album_id", album.id)
@@ -99,7 +99,7 @@ export function GalleryPreview() {
               >
                 {item.image ? (
                   <img
-                    src={item.image.image_url}
+                    src={item.image.thumbnail_url || item.image.image_url}
                     alt={item.image.alt_text || item.album.title}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                   />

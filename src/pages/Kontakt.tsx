@@ -9,7 +9,7 @@ import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { usePageBackground } from "@/hooks/usePageBackground";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 
 export default function Kontakt() {
   const { toast } = useToast();
@@ -36,7 +36,7 @@ export default function Kontakt() {
       message: formData.get("message") as string,
     };
 
-    const { error } = await supabase.from("contact_submissions").insert([data]);
+    const { error } = await siteApi.from("contact_submissions").insert([data]);
 
     if (error) {
       toast({ title: "Fehler", description: "Nachricht konnte nicht gesendet werden.", variant: "destructive" });

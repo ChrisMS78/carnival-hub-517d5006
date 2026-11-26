@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Calendar, MapPin, Clock } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 import { usePageBackground } from "@/hooks/usePageBackground";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/lib/siteTypes";
 
 type Event = Tables<"events">;
 
@@ -17,7 +17,7 @@ export default function Termine() {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await siteApi
         .from("events")
         .select("*")
         .order("sort_order", { ascending: true })

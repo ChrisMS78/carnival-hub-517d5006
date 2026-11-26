@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, ArrowRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/lib/siteTypes";
 
 type Event = Tables<"events">;
 
@@ -14,7 +14,7 @@ export function EventsPreview() {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const { data } = await supabase
+      const { data } = await siteApi
         .from("events")
         .select("*")
         .order("sort_order", { ascending: true })

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +24,7 @@ export default function PageBackgroundManager() {
   }, []);
 
   const fetchPages = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await siteApi
       .from("page_backgrounds")
       .select("*")
       .order("page_label");
@@ -43,7 +43,7 @@ export default function PageBackgroundManager() {
     const fileExt = file.name.split(".").pop();
     const fileName = `backgrounds/${pageKey}-${Date.now()}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await siteApi.storage
       .from("gallery")
       .upload(fileName, file);
 
@@ -53,11 +53,11 @@ export default function PageBackgroundManager() {
       return;
     }
 
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { publicUrl } } = siteApi.storage
       .from("gallery")
       .getPublicUrl(fileName);
 
-    const { error } = await supabase
+    const { error } = await siteApi
       .from("page_backgrounds")
       .update({ background_url: publicUrl, updated_at: new Date().toISOString() })
       .eq("page_key", pageKey);
@@ -75,14 +75,9 @@ export default function PageBackgroundManager() {
     if (!confirm("Möchten Sie das Hintergrundbild entfernen?")) return;
 
     // Delete from storage if exists
-    if (page.background_url) {
-      const urlParts = page.background_url.split("/gallery/");
-      if (urlParts[1]) {
-        await supabase.storage.from("gallery").remove([urlParts[1]]);
-      }
-    }
 
-    const { error } = await supabase
+
+    const { error } = await siteApi
       .from("page_backgrounds")
       .update({ background_url: null, updated_at: new Date().toISOString() })
       .eq("page_key", page.page_key);

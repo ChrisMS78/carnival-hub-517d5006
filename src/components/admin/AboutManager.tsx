@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Pencil, Trash2, FileText, ArrowUp, ArrowDown, BookOpen, Download, Image } from "lucide-react";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/lib/siteTypes";
 
 type AboutContent = Tables<"about_content"> & { section_type?: string; image_url?: string | null };
 
@@ -38,7 +38,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
 
   const fetchContents = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await siteApi
       .from("about_content")
       .select("*")
       .eq("section_type", activeSection)
@@ -65,7 +65,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
       const fileExt = pdfFile.name.split(".").pop();
       const fileName = `${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await siteApi.storage
         .from("documents")
         .upload(fileName, pdfFile);
 
@@ -75,7 +75,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
         return;
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = siteApi.storage
         .from("documents")
         .getPublicUrl(fileName);
 
@@ -88,7 +88,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
       const fileExt = imageFile.name.split(".").pop();
       const fileName = `about/${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await siteApi.storage
         .from("gallery")
         .upload(fileName, imageFile);
 
@@ -98,7 +98,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
         return;
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = siteApi.storage
         .from("gallery")
         .getPublicUrl(fileName);
 
@@ -114,7 +114,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
     };
 
     if (editingContent) {
-      const { error } = await supabase
+      const { error } = await siteApi
         .from("about_content")
         .update(dataToSave)
         .eq("id", editingContent.id);
@@ -126,7 +126,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
         fetchContents();
       }
     } else {
-      const { error } = await supabase.from("about_content").insert([dataToSave]);
+      const { error } = await siteApi.from("about_content").insert([dataToSave]);
 
       if (error) {
         toast.error("Fehler beim Erstellen");
@@ -144,14 +144,9 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
     if (!confirm("Möchten Sie diesen Inhalt wirklich löschen?")) return;
 
     // Delete PDF from storage if exists
-    if (content.pdf_url) {
-      const urlParts = content.pdf_url.split("/documents/");
-      if (urlParts[1]) {
-        await supabase.storage.from("documents").remove([urlParts[1]]);
-      }
-    }
 
-    const { error } = await supabase.from("about_content").delete().eq("id", content.id);
+
+    const { error } = await siteApi.from("about_content").delete().eq("id", content.id);
 
     if (error) {
       toast.error("Fehler beim Löschen");
@@ -165,8 +160,8 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
     if (index === 0) return;
     
     await Promise.all([
-      supabase.from("about_content").update({ sort_order: index - 1 }).eq("id", contents[index].id),
-      supabase.from("about_content").update({ sort_order: index }).eq("id", contents[index - 1].id),
+      siteApi.from("about_content").update({ sort_order: index - 1 }).eq("id", contents[index].id),
+      siteApi.from("about_content").update({ sort_order: index }).eq("id", contents[index - 1].id),
     ]);
     
     fetchContents();
@@ -176,8 +171,8 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
     if (index === contents.length - 1) return;
     
     await Promise.all([
-      supabase.from("about_content").update({ sort_order: index + 1 }).eq("id", contents[index].id),
-      supabase.from("about_content").update({ sort_order: index }).eq("id", contents[index + 1].id),
+      siteApi.from("about_content").update({ sort_order: index + 1 }).eq("id", contents[index].id),
+      siteApi.from("about_content").update({ sort_order: index }).eq("id", contents[index + 1].id),
     ]);
     
     fetchContents();

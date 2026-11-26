@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock, Mail } from "lucide-react";
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -15,8 +15,7 @@ const loginSchema = z.object({
 });
 
 export default function Admin() {
-  const { user, isAdmin, isRedakteur, hasBackendAccess, isLoading, signIn, signUp } = useAuth();
-  const [isSignUp, setIsSignUp] = useState(false);
+  const { user, hasBackendAccess, isLoading, signIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,28 +39,8 @@ export default function Admin() {
     setIsSubmitting(true);
 
     try {
-      if (isSignUp) {
-        const { error } = await signUp(email, password);
-        if (error) {
-          if (error.message.includes("already registered")) {
-            toast.error("Diese E-Mail ist bereits registriert");
-          } else {
-            toast.error(error.message);
-          }
-        } else {
-          toast.success("Konto erstellt! Sie können sich jetzt anmelden.");
-          setIsSignUp(false);
-        }
-      } else {
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes("Invalid login")) {
-            toast.error("Ungültige Anmeldedaten");
-          } else {
-            toast.error(error.message);
-          }
-        }
-      }
+      const { error } = await signIn(email, password);
+      if (error) toast.error(error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -106,7 +85,7 @@ export default function Admin() {
           <div className="text-center mb-8">
             <Link to="/" className="text-3xl font-display font-bold text-primary">K.E.B e.V.</Link>
             <p className="text-muted-foreground mt-2">
-              {isSignUp ? "Admin Registrierung" : "Admin Login"}
+              Admin Login
             </p>
           </div>
 
@@ -144,18 +123,12 @@ export default function Admin() {
               {errors.password && <p className="text-sm text-destructive mt-1">{errors.password}</p>}
             </div>
             <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Laden..." : (isSignUp ? "Registrieren" : "Anmelden")}
+              {isSubmitting ? "Laden..." : "Anmelden"}
             </Button>
           </form>
 
           <div className="mt-6 text-center space-y-2">
-            <button
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm text-primary hover:underline"
-            >
-              {isSignUp ? "Bereits registriert? Anmelden" : "Neues Konto erstellen"}
-            </button>
-            <div>
+<div>
               <Link to="/" className="text-sm text-muted-foreground hover:text-primary">
                 ← Zurück zur Startseite
               </Link>

@@ -3,10 +3,10 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FileText, Download, Users, Award, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { usePageBackground } from "@/hooks/usePageBackground";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@/lib/siteTypes";
 
 type AboutContent = Tables<"about_content">;
 
@@ -29,7 +29,7 @@ const { settings } = useSiteSettings([
 
   useEffect(() => {
     const fetchContent = async () => {
-      const { data } = await supabase
+      const { data } = await siteApi
         .from("about_content")
         .select("*")
         .order("sort_order", { ascending: true });

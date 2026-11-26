@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { siteApi } from "@/lib/siteApi";
 
 export function usePageBackground(pageKey: string) {
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
@@ -7,7 +7,7 @@ export function usePageBackground(pageKey: string) {
 
   useEffect(() => {
     const fetchBackground = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await siteApi
         .from("page_backgrounds")
         .select("background_url")
         .eq("page_key", pageKey)

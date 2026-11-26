@@ -129,7 +129,17 @@ try {
   json_response(current_user());
  }
  if($action==='logout'){$_SESSION=[];session_destroy();setcookie(session_name(),'', ['expires'=>time()-3600,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Strict']);json_response();}
- if($action==='create-user'){require_role(['admin']);$v=input();db()->beginTransaction();try{$u=create_account($v);db()->commit();}catch(Throwable $e){db()->rollBack();throw $e;}json_response($u);}
+ if($action==='create-user'){
+  require_role(['admin']);$v=input();
+  if(!is_string($v['password']??null)||!is_string($v['password_confirmation']??null)||$v['password']!==$v['password_confirmation'])fail(400,'Die Passwörter stimmen nicht überein.');
+  if(isset($v['send_email'])&&!is_bool($v['send_email']))fail(400,'Ungültige Benachrichtigungsauswahl.');
+  db()->beginTransaction();
+  try{$u=create_account($v);db()->commit();}catch(Throwable $e){db()->rollBack();throw $e;}
+  // Send only after the transaction succeeds; a mail error must not undo the account.
+  $u['notification_sent']=null;
+  if(($v['send_email']??false)===true)$u['notification_sent']=send_account_notification($u);
+  json_response($u);
+ }
  if($action==='password'){require_role(['admin']);$v=input();$hash=hash_password($v['newPassword']??null);stmt('UPDATE profiles SET password_hash=? WHERE id=?',[$hash,(string)($v['userId']??'')]);json_response();}
  if($action==='query')json_response(query(input()));
  if($action==='album-upload')json_response(album_upload((string)($_POST['albumId']??'')));

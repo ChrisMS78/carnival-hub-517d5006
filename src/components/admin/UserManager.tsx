@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, UserCheck, UserX, Key } from "lucide-react";
+import { Plus, Trash2, UserCheck, UserX, Key, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/lib/siteTypes";
 
@@ -26,9 +26,12 @@ export default function UserManager() {
   const [selectedUserForPassword, setSelectedUserForPassword] = useState<UserWithRole | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    password_confirmation: "",
+    send_email: false,
     display_name: "",
     role: "redakteur" as AppRole,
   });
@@ -78,12 +81,28 @@ export default function UserManager() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    const bytes = new TextEncoder().encode(formData.password).length;
+    if (formData.password.length < 12 || bytes > 72) {
+      toast.error("Das Passwort muss mindestens 12 Zeichen haben und darf höchstens 72 Bytes lang sein.");
+      return;
+    }
+    if (formData.password !== formData.password_confirmation) {
+      toast.error("Die Passwörter stimmen nicht überein.");
+      return;
+    }
     setIsSubmitting(true);
 
     try {
-      const { error } = await siteApi.createUser(formData);
+      const { data, error } = await siteApi.createUser(formData);
       if (error) { toast.error(error.message); return; }
-      toast.success("Benutzer erfolgreich erstellt");
+      if (formData.send_email && data?.notification_sent !== true) {
+        toast.warning("Benutzer erstellt, aber die E-Mail konnte nicht an den Mailserver übergeben werden.");
+      } else if (formData.send_email) {
+        toast.success("Benutzer erstellt und Benachrichtigungsmail zum Versand angenommen.");
+      } else {
+        toast.success("Benutzer erfolgreich erstellt");
+      }
 
       resetForm();
       fetchUsers();
@@ -136,7 +155,8 @@ export default function UserManager() {
   };
 
   const resetForm = () => {
-    setFormData({ email: "", password: "", display_name: "", role: "redakteur" });
+    setFormData({ email: "", password: "", password_confirmation: "", send_email: false, display_name: "", role: "redakteur" });
+    setShowPassword(false);
     setIsDialogOpen(false);
   };
 
@@ -183,14 +203,14 @@ export default function UserManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Benutzerverwaltung</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => { if (isSubmitting) return; if (open) setIsDialogOpen(true); else resetForm(); }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
               Neuer Benutzer
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Neuen Benutzer erstellen</DialogTitle>
             </DialogHeader>
@@ -209,6 +229,7 @@ export default function UserManager() {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="off"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -216,14 +237,41 @@ export default function UserManager() {
               </div>
               <div>
                 <Label htmlFor="password">Passwort</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    className="pr-12"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    minLength={12}
+                    maxLength={72}
+                    required
+                  />
+                  <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Passwörter ausblenden" : "Passwörter anzeigen"} aria-pressed={showPassword} title={showPassword ? "Passwörter ausblenden" : "Passwörter anzeigen"}>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Mindestens 12 Zeichen, maximal 72 Bytes.</p>
+              </div>
+              <div>
+                <Label htmlFor="password-confirmation">Passwort wiederholen</Label>
                 <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  id="password-confirmation"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={formData.password_confirmation}
+                  onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
                   minLength={12}
+                  maxLength={72}
                   required
+                  aria-invalid={!!formData.password_confirmation && formData.password !== formData.password_confirmation}
+                  aria-describedby="password-match"
                 />
+                <p id="password-match" aria-live="polite" className="text-sm text-destructive mt-1">
+                  {formData.password_confirmation && formData.password !== formData.password_confirmation ? "Die Passwörter stimmen nicht überein." : ""}
+                </p>
               </div>
               <div>
                 <Label htmlFor="role">Rolle</Label>
@@ -240,11 +288,18 @@ export default function UserManager() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex items-start gap-3">
+                <Checkbox id="send-user-email" checked={formData.send_email} onCheckedChange={(checked) => setFormData({ ...formData, send_email: checked === true })} />
+                <div>
+                  <Label htmlFor="send-user-email" className="cursor-pointer">Benachrichtigungsmail an die E-Mail-Adresse senden</Label>
+                  <p className="text-xs text-muted-foreground mt-1">Enthält die Anmeldeadresse und den Benutzernamen, aber kein Passwort.</p>
+                </div>
+              </div>
               <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={resetForm} disabled={isSubmitting}>
                   Abbrechen
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting || !formData.password_confirmation || formData.password !== formData.password_confirmation}>
                   {isSubmitting ? "Erstellen..." : "Erstellen"}
                 </Button>
               </div>
@@ -328,7 +383,7 @@ export default function UserManager() {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Mindestens 6 Zeichen"
+                placeholder="Mindestens 12 Zeichen"
                 minLength={12}
               />
             </div>

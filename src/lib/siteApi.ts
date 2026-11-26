@@ -45,7 +45,7 @@ export const siteApi = {
   login(email: string, password: string) { return call<Account>('login', { email, password }); },
   me() { return call<Account>('me'); },
   logout() { return call<null>('logout'); },
-  createUser(data: { email: string; password: string; display_name: string; role: Role }) { return call<Account>('create-user', data); },
+  createUser(data: { email: string; password: string; password_confirmation: string; send_email: boolean; display_name: string; role: Role }) { return call<Account & { notification_sent: boolean | null }>('create-user', data); },
   changePassword(userId: string, newPassword: string) { return call<{ error?: string }>('password', { userId, newPassword }); },
   rebuildThumbnail(id: string) { return call<{id: string; thumbnail_url: string}>('rebuild-thumbnail', { id }); },
   albumUpload(albumId: string, file: File) {

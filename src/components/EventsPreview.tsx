@@ -52,12 +52,25 @@ export function EventsPreview() {
                 <div className="h-3 carnival-gradient" />
                 
                 <div className="p-6">
-                  <h3 className="text-xl font-display font-bold text-foreground mb-3 group-hover:text-primary transition-colors">
-                    {event.title}
-                  </h3>
-                  <p className="text-muted-foreground mb-6 line-clamp-2">
-                    {event.description}
-                  </p>
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-xl font-display font-bold text-foreground mb-3 group-hover:text-primary transition-colors break-words">
+                        {event.title}
+                      </h3>
+                      <p className="text-muted-foreground line-clamp-2">
+                        {event.description}
+                      </p>
+                    </div>
+                    {event.image_url && (
+                      <img
+                        src={event.image_url}
+                        alt={`Veranstaltungsbild: ${event.title}`}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-24 sm:w-28 h-32 sm:h-36 shrink-0 object-contain rounded-lg"
+                      />
+                    )}
+                  </div>
                   
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 text-sm">

@@ -31,7 +31,6 @@ export default function UserManager() {
     email: "",
     password: "",
     password_confirmation: "",
-    send_email: false,
     display_name: "",
     role: "redakteur" as AppRole,
   });
@@ -94,15 +93,9 @@ export default function UserManager() {
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await siteApi.createUser(formData);
+      const { error } = await siteApi.createUser(formData);
       if (error) { toast.error(error.message); return; }
-      if (formData.send_email && data?.notification_sent !== true) {
-        toast.warning("Benutzer erstellt, aber die E-Mail konnte nicht an den Mailserver übergeben werden.");
-      } else if (formData.send_email) {
-        toast.success("Benutzer erstellt und Benachrichtigungsmail zum Versand angenommen.");
-      } else {
-        toast.success("Benutzer erfolgreich erstellt");
-      }
+      toast.success("Benutzer erfolgreich erstellt");
 
       resetForm();
       fetchUsers();
@@ -155,7 +148,7 @@ export default function UserManager() {
   };
 
   const resetForm = () => {
-    setFormData({ email: "", password: "", password_confirmation: "", send_email: false, display_name: "", role: "redakteur" });
+    setFormData({ email: "", password: "", password_confirmation: "", display_name: "", role: "redakteur" });
     setShowPassword(false);
     setIsDialogOpen(false);
   };
@@ -287,13 +280,6 @@ export default function UserManager() {
                     <SelectItem value="redakteur">Redakteur</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="flex items-start gap-3">
-                <Checkbox id="send-user-email" checked={formData.send_email} onCheckedChange={(checked) => setFormData({ ...formData, send_email: checked === true })} />
-                <div>
-                  <Label htmlFor="send-user-email" className="cursor-pointer">Benachrichtigungsmail an die E-Mail-Adresse senden</Label>
-                  <p className="text-xs text-muted-foreground mt-1">Enthält die Anmeldeadresse und den Benutzernamen, aber kein Passwort.</p>
-                </div>
               </div>
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="outline" onClick={resetForm} disabled={isSubmitting}>

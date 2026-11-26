@@ -76,23 +76,6 @@ function create_account(array $v): array {
  stmt('INSERT INTO user_roles (id,user_id,role) VALUES (?,?,?)',[uuid(),$id,$role]);
  return ['id'=>$id,'email'=>$email,'display_name'=>$name,'role'=>$role];
 }
-// Optional welcome message via the hosting provider's PHP mail transport.
-function send_account_notification(array $user): bool {
- try {
-  $email=valid_email($user['email']??null);
-  $role=match($user['role']??'user'){'admin'=>'Administrator','redakteur'=>'Redakteur',default=>'Benutzer'};
-  $name=preg_replace('/[\r\n]+/',' ',(string)($user['display_name']??''));
-  $message="Hallo ".($name?:'').",\n\n"
-   ."für dich wurde ein Benutzerkonto für die Homepage der K.E.B. e.V. Bösensell eingerichtet.\n\n"
-   ."Anmeldung: https://keb-ev.de/admin\nE-Mail: ".$email."\nRolle: ".$role."\n\n"
-   ."Dein Passwort erhältst du separat vom Administrator. Aus Sicherheitsgründen wird es nicht per E-Mail verschickt.\n\n"
-   ."Viele Grüße\nK.E.B. e.V. Bösensell\n";
-  $headers=['From'=>'KEB e.V. <info@keb-ev.de>','Reply-To'=>'info@keb-ev.de','MIME-Version'=>'1.0','Content-Type'=>'text/plain; charset=UTF-8','Content-Transfer-Encoding'=>'base64'];
-  $ok=mail($email,'Dein Benutzerkonto bei KEB e.V.',chunk_split(base64_encode($message),76,"\r\n"),$headers);
-  if(!$ok)error_log('KEB: Account notification rejected by mail transport.');
-  return $ok;
- }catch(Throwable $e){error_log('KEB: Account notification failed: '.get_class($e));return false;}
-}
 function json_response(mixed $data=null,int $status=200,?string $error=null): never {
  http_response_code($status);header('Content-Type: application/json; charset=utf-8');
  echo json_encode(['data'=>$data,'error'=>$error===null?null:['message'=>$error]],JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE);exit;

@@ -34,9 +34,6 @@ npm run build
 
 The frontend expects the PHP API at /api/index.php; the Vite dev server alone does not run PHP.
 
-## Account notifications
+## Account creation
 
-New accounts require matching password and password confirmation (validated by PHP as well as the UI).
-The optional checkbox sends a welcome email using PHP mail() after successful account creation. It never includes the password.
-Configure info@keb-ev.de as the default script sender in Host Europe KIS under Scripts & Databases > Script settings.
-If mail transport rejects the message the account remains created and the admin receives a warning. Acceptance by mail() is not a guarantee of delivery.
+New accounts require matching password and password confirmation (validated by PHP as well as the UI). No automatic account notification email is sent.

@@ -13,10 +13,12 @@ import UserManager from "./UserManager";
 import PageBackgroundManager from "./PageBackgroundManager";
 import { Overview, TrashManager, AuditManager, OwnPassword } from "./ManagementTools";
 import { BackupManager } from "./BackupManager";
+import { LegalManager, LegalWarning } from "./LegalManager";
 
 export default function AdminDashboard() {
   const { user, isAdmin, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
+  const [legalVersion, setLegalVersion] = useState(0);
 
   const handleSignOut = async () => {
     await signOut();
@@ -51,6 +53,7 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {isAdmin && <LegalWarning version={legalVersion} onNavigate={setActiveTab} />}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="flex flex-wrap h-auto justify-start w-full gap-1 p-2">
             <TabsTrigger value="overview">Übersicht</TabsTrigger>
@@ -64,6 +67,7 @@ export default function AdminDashboard() {
               <TabsTrigger value="contact">Nachrichten</TabsTrigger>
               <TabsTrigger value="settings">Einstellungen</TabsTrigger>
               <TabsTrigger value="imprint">Impressum</TabsTrigger>
+              <TabsTrigger value="privacy">Datenschutz</TabsTrigger>
               <TabsTrigger value="users">Benutzer</TabsTrigger>
               <TabsTrigger value="audit">Änderungshistorie</TabsTrigger>
               <TabsTrigger value="backup">Datensicherung</TabsTrigger>
@@ -99,7 +103,8 @@ export default function AdminDashboard() {
                 <SiteSettingsManager />
               </TabsContent>
 
-              <TabsContent value="imprint"><SiteSettingsManager imprint /></TabsContent>
+              <TabsContent value="imprint"><LegalManager category="impressum" onSaved={() => setLegalVersion(v=>v+1)} /></TabsContent>
+              <TabsContent value="privacy"><LegalManager category="datenschutz" onSaved={() => setLegalVersion(v=>v+1)} /></TabsContent>
               <TabsContent value="audit"><AuditManager /></TabsContent>
               <TabsContent value="backup"><BackupManager /></TabsContent>
               <TabsContent value="users">

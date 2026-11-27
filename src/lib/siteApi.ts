@@ -4,6 +4,7 @@ type Result<T> = { data: T | null; error: Error | null };
 type Table = keyof Database['public']['Tables'];
 export type TrashItem = { table: string; id: string; label: string; deleted_at: string; last_edit_by: string | null };
 export type AuditItem = { id: number; actor: string; action: string; entity: string; entity_id: string; label: string; fields: string; created_at: string };
+export type LegalStatus = { impressum: Record<string,string>; datenschutz: Record<string,string> };
 type Role = 'admin' | 'redakteur' | 'user';
 export type Account = { id: string; email: string; display_name: string | null; username: string; role: Role };
 
@@ -46,6 +47,8 @@ const urls = new Map<string, string>();
 export const siteApi = {
   from<K extends Table>(table: K) { return new Query<Tables<K>[]>({ table, op: 'select' }); },
   adminFrom<K extends Table>(table: K) { return new Query<Tables<K>[]>({ table, op: 'select', management: true }); },
+  legalStatus() { return call<LegalStatus>('legal-status'); },
+  saveLegal(category: 'impressum' | 'datenschutz', values: Record<string,string>) { return call<LegalStatus>('legal-save', { category, values }); },
   dashboard() { return call<Record<string, number>>('dashboard'); },
   trash() { return call<TrashItem[]>('trash'); },
   restore(table: string, id: string) { return call<null>('restore', { table, id }); },

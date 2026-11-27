@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -131,6 +132,7 @@ export default function Kontakt() {
                     <Label htmlFor="message">Nachricht *</Label>
                     <Textarea id="message" name="message" rows={5} required className="mt-2" />
                   </div>
+                  <p className="text-sm text-muted-foreground">Wir verarbeiten Ihre Angaben zur Bearbeitung Ihrer Anfrage. Name, E-Mail-Adresse und Nachricht sind Pflichtangaben. Informationen zu Rechtsgrundlagen, Speicherdauer und Ihren Rechten finden Sie in unserer <Link to="/datenschutz" className="text-primary underline">Datenschutzerklärung</Link>.</p>
                   <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
                     <Send className="w-4 h-4 mr-2" />
                     {isSubmitting ? "Wird gesendet..." : "Absenden"}

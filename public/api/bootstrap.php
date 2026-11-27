@@ -6,7 +6,8 @@ ini_set('session.use_strict_mode','1');
 ini_set('session.use_only_cookies','1');
 session_name('KEBSESSID');
 session_set_cookie_params(['lifetime'=>0,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Strict']);
-session_start();
+// Public visitors do not receive a session cookie until successful authentication.
+if(isset($_COOKIE[session_name()]))session_start();
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 

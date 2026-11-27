@@ -132,6 +132,7 @@ export default function Admin() {
           </form>
 
           <div className="mt-6 text-center space-y-2">
+            <div className="flex justify-center gap-4 text-sm"><Link to="/impressum" className="underline">Impressum</Link><Link to="/datenschutz" className="underline">Datenschutz</Link></div>
 <div>
               <Link to="/" className="text-sm text-muted-foreground hover:text-primary">
                 ← Zurück zur Startseite

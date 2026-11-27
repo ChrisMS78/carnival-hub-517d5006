@@ -76,6 +76,7 @@ export function Footer() {
               </Link>
 
               <Link to="/impressum" className="text-muted-foreground transition hover:text-primary">Impressum</Link>
+              <Link to="/datenschutz" className="text-muted-foreground transition hover:text-primary">Datenschutz</Link>
               <Link
                 to="/admin"
                 className="text-muted-foreground transition hover:text-primary"

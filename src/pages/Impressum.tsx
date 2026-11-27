@@ -4,7 +4,7 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export default function Impressum() {
   const { settings: s, isLoading } = useSiteSettings([
-    "imprint_name","imprint_address","imprint_board","imprint_court","imprint_register",
+    "imprint_name","imprint_address","imprint_board","imprint_board_address","imprint_court","imprint_register",
     "imprint_email","imprint_phone","imprint_vat","imprint_economic_id","imprint_editor","imprint_editor_address","imprint_extra",
   ]);
   return <div className="min-h-screen bg-background"><Navbar /><main className="pt-20">
@@ -15,7 +15,7 @@ export default function Impressum() {
           <p className="whitespace-pre-line">{s.imprint_name || "K.E.B. e.V."}</p>
           {s.imprint_address && <p className="whitespace-pre-line">{s.imprint_address}</p>}
         </section>
-        {s.imprint_board && <section><h2 className="text-xl font-bold mb-2">Vertreten durch den Vorstand gemäß § 26 BGB</h2><p className="whitespace-pre-line">{s.imprint_board}</p></section>}
+        {s.imprint_board && <section><h2 className="text-xl font-bold mb-2">Vertreten durch den Vorstand gemäß § 26 BGB</h2><p className="whitespace-pre-line">{s.imprint_board}</p>{s.imprint_board_address && s.imprint_board_address !== s.imprint_address && <p className="whitespace-pre-line mt-2">{s.imprint_board_address}</p>}</section>}
         <section><h2 className="text-xl font-bold mb-2">Kontakt</h2>
           {s.imprint_email && <p>E-Mail: <a className="text-primary underline" href={`mailto:${s.imprint_email}`}>{s.imprint_email}</a></p>}
           {s.imprint_phone && <p>Telefon: {s.imprint_phone}</p>}

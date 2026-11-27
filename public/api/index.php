@@ -3,6 +3,7 @@ declare(strict_types=1);
 require __DIR__.'/bootstrap.php';
 require __DIR__.'/images.php';
 require __DIR__.'/management.php';
+require __DIR__.'/legal.php';
 
 // Fixed table/column allowlists; all values use PDO parameters.
 const COLS=[
@@ -71,6 +72,13 @@ function query(array $q): mixed {
  if($op==='select'&&!$actor&&in_array($table,PUBLISH_TABLES,true))$where[]='published=1';
  if($table==='gallery_images')$where[]='album_id IN (SELECT id FROM gallery_albums WHERE deleted_at IS NULL'.($op==='select'&&!$actor?' AND published=1':'').')';
  if($table==='events'&&$op==='select'&&!$actor&&($q['upcoming']??false)===true){$where[]='event_date>=?';$args[]=(new DateTimeImmutable('now',new DateTimeZone('Europe/Berlin')))->format('Y-m-d');}
+ if($table==='site_settings'&&$op==='select'&&!$actor)$where[]="`key` NOT IN ('privacy_reviewed','imprint_has_vat','imprint_has_economic_id','imprint_has_editor')";
+ if($table==='site_settings'&&$op==='update'){
+  if(count($where)!==1||$where[0]!=="`key`=?"||count($args)!==1)fail(403,'Einstellungen nur über ihren Schlüssel bearbeiten.');
+  // A separate atomic endpoint validates the complete legal document.
+  $where[]="category NOT IN ('impressum','datenschutz')";
+  if(in_array(stmt('SELECT category FROM site_settings WHERE `key`=?',[$args[0]])->fetchColumn(),['impressum','datenschutz'],true))fail(403,'Bitte die Rechtstexte im eigenen Verwaltungsbereich bearbeiten.');
+ }
  $w=$where?' WHERE '.implode(' AND ',$where):'';$t='`'.$table.'`';
  if($op==='select'){
   $fields=trim((string)($q['columns']??'*'));$fields=$fields==='*'?COLS[$table]:array_map('trim',explode(',',$fields));
@@ -163,10 +171,11 @@ try {
   $hash=$u['password_hash']??'$2y$12$LQv3c1yqBWVHxkd0LHAkCOYv5hZJNC6p2V3HYweM0vhsPv6shPrUe';
   if(!password_verify($pw,$hash)||!$u||!$u['is_active'])fail(401,'Ungültige Anmeldedaten.');
   stmt('UPDATE profiles SET last_login_at=UTC_TIMESTAMP() WHERE id=?',[$u['id']]);
+  if(session_status()!==PHP_SESSION_ACTIVE)session_start();
   session_regenerate_id(true);$_SESSION=['uid'=>$u['id'],'last'=>time(),'version'=>hash('sha256',$hash)];
   json_response(current_user());
  }
- if($action==='logout'){$_SESSION=[];session_destroy();setcookie(session_name(),'', ['expires'=>time()-3600,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Strict']);json_response();}
+ if($action==='logout'){$_SESSION=[];if(session_status()===PHP_SESSION_ACTIVE)session_destroy();setcookie(session_name(),'', ['expires'=>time()-3600,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Strict']);json_response();}
  if($action==='create-user'){
   $actor=require_role(['admin']);$v=input();
   if(!is_string($v['password']??null)||!is_string($v['password_confirmation']??null)||$v['password']!==$v['password_confirmation'])fail(400,'Die Passwörter stimmen nicht überein.');
@@ -194,6 +203,8 @@ try {
   }catch(Throwable $e){db()->rollBack();throw $e;}
   json_response();
  }
+ if($action==='legal-status'){require_role(['admin']);json_response(legal_status());}
+ if($action==='legal-save'){save_legal(input());json_response(legal_status());}
  if($action==='dashboard')json_response(dashboard());
  if($action==='trash')json_response(trash_list());
  if($action==='restore'){restore_record(input());json_response();}

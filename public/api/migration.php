@@ -22,14 +22,14 @@ function valid_username(mixed $name): string {
 function ensure_schema(): void {
  $pdo=db();
  try {
-  if((int)$pdo->query('SELECT version FROM keb_schema_version WHERE id=1')->fetchColumn()>=3)return;
+  if((int)$pdo->query('SELECT version FROM keb_schema_version WHERE id=1')->fetchColumn()>=4)return;
  }catch(PDOException $e){if((int)($e->errorInfo[1]??0)!==1146)throw $e;}
  if(!column_exists('profiles','id'))fail(503,'Bitte zuerst die Ersteinrichtung durchführen.');
  $lock='keb-schema-'.substr(hash('sha256',config()['database']),0,24);
  if((int)stmt('SELECT GET_LOCK(?,15)',[$lock])->fetchColumn()!==1)fail(503,'Datenbankaktualisierung läuft. Bitte erneut versuchen.');
  try {
   $pdo->exec('CREATE TABLE IF NOT EXISTS keb_schema_version (id INT PRIMARY KEY,version INT NOT NULL) ENGINE=InnoDB');
-  if((int)$pdo->query('SELECT version FROM keb_schema_version WHERE id=1')->fetchColumn()>=3)return;
+  if((int)$pdo->query('SELECT version FROM keb_schema_version WHERE id=1')->fetchColumn()>=4)return;
   if(!column_exists('profiles','username'))$pdo->exec('ALTER TABLE profiles ADD COLUMN username VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci NULL');
   $used=[];
   foreach(stmt('SELECT username FROM profiles WHERE username IS NOT NULL')->fetchAll() as $r)$used[strtolower($r['username'])]=true;
@@ -68,7 +68,31 @@ function ensure_schema(): void {
    ['imprint_extra','','Weitere Pflichtangaben (falls zutreffend)']
   ];
   foreach($imprint as [$key,$value,$label])stmt("INSERT IGNORE INTO site_settings (id,`key`,value,label,category) VALUES (?,?,?,?,'impressum')",[uuid(),$key,$value,$label]);
-  $pdo->exec('INSERT INTO keb_schema_version (id,version) VALUES (1,3) ON DUPLICATE KEY UPDATE version=3');
+  $legalFields=[
+   ['imprint_board_address','','Anschrift der Vertretungsberechtigten (auch Vereinsanschrift, falls dort erreichbar)','impressum'],
+   ['imprint_has_vat','','USt-IdNr. vorhanden?','impressum'],
+   ['imprint_has_economic_id','','Wirtschafts-IdNr. vorhanden?','impressum'],
+   ['imprint_has_editor','','Journalistisch-redaktionelles Angebot im Sinne von § 18 Abs. 2 MStV?','impressum'],
+   ['privacy_hosting','Die Website wird auf Webspace von Host Europe GmbH betrieben. Bei einem Aufruf verarbeitet der Hostingdienst technisch erforderliche Zugriffsdaten, insbesondere IP-Adresse, Zeitpunkt, angeforderte Ressource, HTTP-Status und Browserinformationen, soweit diese protokolliert werden. Dies dient der Auslieferung, Fehleranalyse und Sicherheit (Art. 6 Abs. 1 lit. f DSGVO). Empfänger sind der Hostingdienst und gegebenenfalls dessen eingesetzte Dienstleister.','Hosting und Server-Protokolle','datenschutz'],
+   ['privacy_logs_retention','','Speicherfrist der Server-Protokolle (laut KIS / Vertrag)','datenschutz'],
+   ['privacy_hosting_transfers','','Hosting: Speicherort, Empfänger und ggf. Drittlandübermittlung / Garantien (laut Vertrag)','datenschutz'],
+   ['privacy_contact','Bei einer Kontaktanfrage verarbeiten wir Name, E-Mail-Adresse, gegebenenfalls Betreff und Nachricht zur Bearbeitung und Beantwortung. Die Angaben aus dem Formular werden in unserer MySQL-Datenbank gespeichert und sind für berechtigte Administratoren zugänglich. Pflichtangaben sind erforderlich, um die Anfrage zu bearbeiten; der Betreff ist freiwillig. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO bei vertragsbezogenen Anfragen, andernfalls Art. 6 Abs. 1 lit. f DSGVO (Interesse an der Beantwortung).','Kontaktformular und E-Mail','datenschutz'],
+   ['privacy_contact_retention','','Speicherfrist bzw. Löschkriterien für Kontaktanfragen (auch Papierkorb)','datenschutz'],
+   ['privacy_accounts','Für die Verwaltung verarbeiten wir Benutzername, E-Mail-Adresse, Rolle, Passwort-Hash, letzte Anmeldung und Bearbeiterinformationen. Die Änderungshistorie dokumentiert Verwaltungsaktionen. Das technisch notwendige Cookie KEBSESSID ordnet die angemeldete Sitzung zu; es wird nach erfolgreicher Anmeldung gesetzt und beim Abmelden gelöscht. Es ist ein Sitzungscookie ohne feste Ablaufzeit im Browser; nach zwei Stunden Inaktivität wird die Anmeldung ungültig. Rechtsgrundlagen sind Art. 6 Abs. 1 lit. f DSGVO (Zugriffsschutz und nachvollziehbare Verwaltung) sowie für das notwendige Cookie § 25 Abs. 2 Nr. 2 TDDDG.','Verwaltung und Sitzungs-Cookies','datenschutz'],
+   ['privacy_security','Zur Begrenzung von Anmeldeversuchen und Kontaktanfragen speichert die Anwendung einen aus der IP-Adresse und dem Anfragezweck abgeleiteten Hash, den Anfragezähler und den Zeitraum. Dies dient dem Schutz vor Missbrauch (Art. 6 Abs. 1 lit. f DSGVO).','Missbrauchsschutz','datenschutz'],
+   ['privacy_accounts_retention','','Speicherfristen für Konten, Sicherheitsdaten und Änderungshistorie','datenschutz'],
+   ['privacy_photos','Wir veröffentlichen in der Galerie Fotos von Vereinsveranstaltungen. Fotos können personenbezogene Daten enthalten; insbesondere bei Kindern und Jugendlichen sind die Persönlichkeitsrechte zu beachten. Öffentlich bereitgestellte Bilder können von Internetnutzern weltweit abgerufen werden. Bei Fragen oder Einwänden gegen eine Veröffentlichung wenden Sie sich bitte an die im Impressum genannte Kontaktadresse.','Veranstaltungsfotos und Bildrechte','datenschutz'],
+   ['privacy_photos_basis','','Fotos: tatsächliche Rechtsgrundlage, Informationspraxis und Löschkriterien','datenschutz'],
+   ['privacy_external','Die Website verlinkt auf Facebook. Beim bloßen Aufruf unserer Seiten wird über diesen Link kein Facebook-Dienst eingebunden. Erst beim Anklicken verlassen Sie unsere Website; für die dortige Verarbeitung gelten die Hinweise des jeweiligen Anbieters. Wir verwenden lokale Systemschriftarten und binden keine externen Webfonts ein.','Externe Links und Schriftarten','datenschutz'],
+   ['privacy_backup','Administratoren können Sicherungen der Datenbank, Bilder und Dokumente erstellen. Die Sicherungen können personenbezogene Daten enthalten und dienen der Wiederherstellung und Sicherheit (Art. 6 Abs. 1 lit. f DSGVO).','Datensicherung','datenschutz'],
+   ['privacy_backup_retention','','Backup: tatsächliche Speicherorte, Empfänger und Löschfristen','datenschutz'],
+   ['privacy_rights','Sie haben nach Maßgabe der DSGVO das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Datenübertragbarkeit. Sie können einer Verarbeitung auf Grundlage berechtigter Interessen nach Art. 21 DSGVO widersprechen. Erteilte Einwilligungen können Sie jederzeit mit Wirkung für die Zukunft widerrufen. Zudem besteht ein Beschwerderecht bei einer Datenschutzaufsichtsbehörde, insbesondere der Landesbeauftragten für Datenschutz und Informationsfreiheit Nordrhein-Westfalen (www.ldi.nrw.de).','Betroffenenrechte und Beschwerde','datenschutz'],
+   ['privacy_dpo','','Datenschutzbeauftragter (Kontaktdaten, sofern bestellt)','datenschutz'],
+   ['privacy_extra','','Weitere Verarbeitungen / Empfänger / Pflichtangaben (falls zutreffend)','datenschutz'],
+   ['privacy_reviewed','false','Angaben mit tatsächlicher Verarbeitung, Verträgen und Löschpraxis abgeglichen','datenschutz']
+  ];
+  foreach($legalFields as [$key,$value,$label,$category])stmt("INSERT IGNORE INTO site_settings (id,`key`,value,label,category) VALUES (?,?,?,?,?)",[uuid(),$key,$value,$label,$category]);
+  $pdo->exec('INSERT INTO keb_schema_version (id,version) VALUES (1,4) ON DUPLICATE KEY UPDATE version=4');
  }finally{stmt('SELECT RELEASE_LOCK(?)',[$lock]);}
 }
 function stamp_album(string $id,array $actor): void {

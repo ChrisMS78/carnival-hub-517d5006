@@ -22,7 +22,7 @@ export default function ContactManager() {
 
   const fetchSubmissions = async () => {
     const { data, error } = await siteApi
-      .from("contact_submissions")
+      .adminFrom("contact_submissions")
       .select("*")
       .order("created_at", { ascending: false });
 
@@ -36,7 +36,7 @@ export default function ContactManager() {
 
   const markAsRead = async (id: string) => {
     const { error } = await siteApi
-      .from("contact_submissions")
+      .adminFrom("contact_submissions")
       .update({ is_read: true })
       .eq("id", id);
 
@@ -49,7 +49,7 @@ export default function ContactManager() {
 
   const handleDelete = async (id: string) => {
     const { error } = await siteApi
-      .from("contact_submissions")
+      .adminFrom("contact_submissions")
       .delete()
       .eq("id", id);
 

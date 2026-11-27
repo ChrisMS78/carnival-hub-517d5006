@@ -18,9 +18,10 @@ const categoryLabels: Record<string, string> = {
   hero: "Startseite (Hero)",
   about: "Über uns",
   contact: "Kontakt",
+  impressum: "Impressum",
 };
 
-export default function SiteSettingsManager() {
+export default function SiteSettingsManager({ imprint = false }: { imprint?: boolean }) {
   const [settings, setSettings] = useState<SiteSetting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -32,15 +33,17 @@ export default function SiteSettingsManager() {
 
   const fetchSettings = async () => {
     const { data, error } = await siteApi
-      .from("site_settings")
+      .adminFrom("site_settings")
       .select("*")
+      .in("category", imprint ? ["impressum"] : ["hero", "about", "contact"])
       .order("category")
       .order("key");
 
     if (error) {
       toast.error("Fehler beim Laden der Einstellungen");
     } else {
-      setSettings(data || []);
+      const order = ["imprint_name","imprint_address","imprint_board","imprint_email","imprint_phone","imprint_court","imprint_register","imprint_vat","imprint_economic_id","imprint_editor","imprint_editor_address","imprint_extra"];
+      setSettings(imprint ? [...(data || [])].sort((a,b)=>order.indexOf(a.key)-order.indexOf(b.key)) : (data || []).filter(s=>!["contact_address","contact_email","contact_phone"].includes(s.key)));
       // Initialize edited values with current values
       const values: Record<string, string> = {};
       data?.forEach((s) => {
@@ -58,7 +61,7 @@ export default function SiteSettingsManager() {
       // Update all changed settings
       const updates = settings.filter((setting) => (setting.value || "") !== editedValues[setting.key]).map((setting) =>
         siteApi
-          .from("site_settings")
+          .adminFrom("site_settings")
           .update({ value: editedValues[setting.key], updated_at: new Date().toISOString() })
           .eq("key", setting.key)
       );
@@ -76,7 +79,7 @@ export default function SiteSettingsManager() {
 
   const categories = [...new Set(settings.map((s) => s.category))];
 
-  const isMultiline = (key: string) => key.includes("address") || key.includes("content");
+  const isMultiline = (key: string) => key.includes("address") || key.includes("content") || key === "imprint_board" || key === "imprint_extra";
   const isCheckbox = (key: string) => key.includes("show_");
 
   if (isLoading) {
@@ -86,13 +89,14 @@ export default function SiteSettingsManager() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Seiteneinstellungen</h2>
+        <h2 className="text-2xl font-bold">{imprint ? "Impressum bearbeiten" : "Seiteneinstellungen"}</h2>
         <Button onClick={handleSave} disabled={isSaving}>
           <Save className="w-4 h-4 mr-2" />
           {isSaving ? "Speichern..." : "Alle speichern"}
         </Button>
       </div>
 
+      {imprint && <p className="text-sm text-muted-foreground">Bitte vollständigen Vereinsnamen, ladungsfähige Anschrift, vertretungsberechtigten Vorstand, Registergericht und Registernummer sowie Kontaktmöglichkeiten prüfen. Optionale Angaben nur bei Zutreffen ausfüllen.</p>}
       <Tabs defaultValue={categories[0]} className="space-y-4">
         <TabsList>
           {categories.map((cat) => (

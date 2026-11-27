@@ -10,6 +10,7 @@ import Termine from "./pages/Termine";
 import Galerie from "./pages/Galerie";
 import GalerieAlbum from "./pages/GalerieAlbum";
 import Kontakt from "./pages/Kontakt";
+import Impressum from "./pages/Impressum";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/galerie" element={<Galerie />} />
             <Route path="/galerie/:albumId" element={<GalerieAlbum />} />
             <Route path="/kontakt" element={<Kontakt />} />
+            <Route path="/impressum" element={<Impressum />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

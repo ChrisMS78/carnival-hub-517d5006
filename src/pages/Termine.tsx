@@ -13,6 +13,9 @@ type Event = Tables<"events">;
 export default function Termine() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showArchive, setShowArchive] = useState(false);
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const visibleEvents = events.filter(e => showArchive ? e.event_date < today : e.event_date >= today);
   const { backgroundUrl } = usePageBackground("termine");
 
   useEffect(() => {
@@ -39,7 +42,7 @@ export default function Termine() {
         <section className="py-20 carnival-gradient">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl md:text-6xl font-display font-bold text-primary-foreground mb-4">Termine</h1>
-            <p className="text-xl text-primary-foreground/80">Unsere kommenden Veranstaltungen</p>
+            <p className="text-xl text-primary-foreground/80">Unsere Veranstaltungen und das Terminarchiv</p>
           </div>
         </section>
 
@@ -49,12 +52,13 @@ export default function Termine() {
         >
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto space-y-6">
+              <div className="flex flex-wrap gap-3"><button type="button" className={"rounded-lg border px-4 py-2 " + (!showArchive ? "bg-primary text-primary-foreground" : "bg-card")} onClick={() => setShowArchive(false)}>Kommende Termine</button><button type="button" className={"rounded-lg border px-4 py-2 " + (showArchive ? "bg-primary text-primary-foreground" : "bg-card")} onClick={() => setShowArchive(true)}>Archiv</button></div>
               {isLoading ? (
                 <div className="text-center py-8 text-muted-foreground">Laden...</div>
-              ) : events.length === 0 ? (
+              ) : visibleEvents.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">Keine Termine vorhanden</div>
               ) : (
-                events.map((event) => (
+                visibleEvents.map((event) => (
                   <div key={event.id} className="bg-card rounded-2xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow">
                     <div className="h-2 carnival-gradient rounded-full mb-4" />
                     <div className="flex flex-col md:flex-row gap-6">

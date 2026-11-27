@@ -1,32 +1,20 @@
 import { Link } from "react-router-dom";
-import { Facebook, Instagram, Mail, MapPin, Phone, LogOut } from "lucide-react";
+import { Facebook, LogOut } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
-import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Button } from "@/components/ui/button";
 
 export function Footer() {
   const { user, signOut } = useAuth();
 
-  const { settings } = useSiteSettings([
-    "contact_address",
-    "contact_email",
-    "contact_phone",
-  ]);
-
   const handleLogout = async () => {
     await signOut();
   };
 
-  const contactAddress =
-    settings.contact_address || "Musterstraße 123\n48329 Bösensell";
-  const contactEmail = settings.contact_email || "info@keb-ev.de";
-  const contactPhone = settings.contact_phone || "+49 123 456789";
-
   return (
     <footer className="bg-card border-t">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-2">
           {/* Brand */}
           <div>
             <h3 className="mb-4 text-2xl font-bold text-primary">
@@ -42,7 +30,7 @@ export function Footer() {
             <div className="flex gap-3">
               <Button variant="outline" size="icon" asChild>
                 <a
-                  href="#"
+                  href="https://www.facebook.com/KarnevalsfreundeBoesensell"
                   aria-label="Facebook"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -51,16 +39,6 @@ export function Footer() {
                 </a>
               </Button>
 
-              <Button variant="outline" size="icon" asChild>
-                <a
-                  href="#"
-                  aria-label="Instagram"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Instagram className="h-4 w-4" />
-                </a>
-              </Button>
             </div>
           </div>
 
@@ -97,6 +75,7 @@ export function Footer() {
                 Kontakt
               </Link>
 
+              <Link to="/impressum" className="text-muted-foreground transition hover:text-primary">Impressum</Link>
               <Link
                 to="/admin"
                 className="text-muted-foreground transition hover:text-primary"
@@ -118,37 +97,7 @@ export function Footer() {
             </nav>
           </div>
 
-          {/* Contact Info */}
-          <div>
-            <h4 className="mb-4 text-lg font-semibold">Kontakt</h4>
 
-            <div className="space-y-3 text-muted-foreground">
-              <div className="flex items-start gap-3">
-                <MapPin className="mt-1 h-5 w-5 shrink-0 text-primary" />
-                <span className="whitespace-pre-line">{contactAddress}</span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 shrink-0 text-primary" />
-                <a
-                  href={`mailto:${contactEmail}`}
-                  className="transition hover:text-primary"
-                >
-                  {contactEmail}
-                </a>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Phone className="h-5 w-5 shrink-0 text-primary" />
-                <a
-                  href={`tel:${contactPhone.replace(/\s+/g, "")}`}
-                  className="transition hover:text-primary"
-                >
-                  {contactPhone}
-                </a>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="mt-8 border-t pt-8 text-center text-muted-foreground">

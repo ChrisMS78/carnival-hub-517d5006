@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { siteApi } from "@/lib/siteApi";
 import { LastEdit } from "./LastEdit";
+import heroImage from "@/assets/hero-carnival.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +29,7 @@ export default function PageBackgroundManager() {
 
   const fetchPages = async () => {
     const { data, error } = await siteApi
-      .from("page_backgrounds")
+      .adminFrom("page_backgrounds")
       .select("*")
       .order("page_label");
 
@@ -61,7 +62,7 @@ export default function PageBackgroundManager() {
       .getPublicUrl(fileName);
 
     const { error } = await siteApi
-      .from("page_backgrounds")
+      .adminFrom("page_backgrounds")
       .update({ background_url: publicUrl, updated_at: new Date().toISOString() })
       .eq("page_key", pageKey);
 
@@ -81,7 +82,7 @@ export default function PageBackgroundManager() {
 
 
     const { error } = await siteApi
-      .from("page_backgrounds")
+      .adminFrom("page_backgrounds")
       .update({ background_url: null, updated_at: new Date().toISOString() })
       .eq("page_key", page.page_key);
 
@@ -115,25 +116,26 @@ export default function PageBackgroundManager() {
               <LastEdit record={page} />
             </CardHeader>
             <CardContent className="space-y-4">
-              {page.background_url ? (
+              {(page.background_url || page.page_key === "home") ? (
                 <div className="relative">
                   <img
-                    src={page.background_url}
+                    src={page.background_url || heroImage}
                     alt={`Hintergrund ${page.page_label}`}
                     className="w-full h-32 object-cover rounded-md"
                   />
-                  <Button
+                  <p className="text-xs text-muted-foreground mt-1">{page.background_url ? "Aktuell hinterlegtes Bild" : "Aktuell verwendetes Standardbild (Startseite)"}</p>
+                  {page.background_url && <Button
                     variant="destructive"
                     size="sm"
                     className="absolute top-2 right-2"
                     onClick={() => handleRemove(page)}
                   >
                     <Trash2 className="w-4 h-4" />
-                  </Button>
+                  </Button>}
                 </div>
               ) : (
                 <div className="w-full h-32 bg-muted rounded-md flex items-center justify-center text-muted-foreground">
-                  Kein Hintergrundbild
+                  Kein individuelles Hintergrundbild – Standardfarbfläche
                 </div>
               )}
 

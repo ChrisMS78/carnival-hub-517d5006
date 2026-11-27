@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { siteApi } from "@/lib/siteApi";
 import { LastEdit } from "./LastEdit";
+import { PublicationControls } from "./PublicationControls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +37,7 @@ export default function EventsManager() {
 
   const fetchEvents = async () => {
     const { data, error } = await siteApi
-      .from("events")
+      .adminFrom("events")
       .select("*")
       .order("sort_order", { ascending: true })
       .order("event_date", { ascending: true });
@@ -54,8 +55,8 @@ export default function EventsManager() {
     
     // Use index-based values to ensure unique sort orders
     await Promise.all([
-      siteApi.from("events").update({ sort_order: index - 1 }).eq("id", events[index].id),
-      siteApi.from("events").update({ sort_order: index }).eq("id", events[index - 1].id),
+      siteApi.adminFrom("events").update({ sort_order: index - 1 }).eq("id", events[index].id),
+      siteApi.adminFrom("events").update({ sort_order: index }).eq("id", events[index - 1].id),
     ]);
     
     fetchEvents();
@@ -66,8 +67,8 @@ export default function EventsManager() {
     
     // Use index-based values to ensure unique sort orders
     await Promise.all([
-      siteApi.from("events").update({ sort_order: index + 1 }).eq("id", events[index].id),
-      siteApi.from("events").update({ sort_order: index }).eq("id", events[index + 1].id),
+      siteApi.adminFrom("events").update({ sort_order: index + 1 }).eq("id", events[index].id),
+      siteApi.adminFrom("events").update({ sort_order: index }).eq("id", events[index + 1].id),
     ]);
     
     fetchEvents();
@@ -101,11 +102,11 @@ export default function EventsManager() {
       imageUrl = publicUrl;
     }
 
-    const dataToSave = { ...formData, image_url: imageUrl };
+    const dataToSave = { ...formData, image_url: imageUrl, published: editingEvent ? editingEvent.published === true : false };
 
     if (editingEvent) {
       const { error } = await siteApi
-        .from("events")
+        .adminFrom("events")
         .update(dataToSave)
         .eq("id", editingEvent.id);
 
@@ -117,15 +118,15 @@ export default function EventsManager() {
       }
     } else {
       // New items get sort_order -1 to appear first, then normalize all orders
-      const { error } = await siteApi.from("events").insert([{ ...dataToSave, sort_order: -1 }]);
+      const { error } = await siteApi.adminFrom("events").insert([{ ...dataToSave, sort_order: -1 }]);
 
       if (error) {
         toast.error("Fehler beim Erstellen");
       } else {
-        toast.success("Termin erstellt");
+        toast.success("Termin als Entwurf erstellt");
         // Normalize sort orders after insert
         const { data: allEvents } = await siteApi
-          .from("events")
+          .adminFrom("events")
           .select("id")
           .order("sort_order", { ascending: true })
           .order("event_date", { ascending: true });
@@ -133,7 +134,7 @@ export default function EventsManager() {
         if (allEvents) {
           await Promise.all(
             allEvents.map((event, idx) =>
-              siteApi.from("events").update({ sort_order: idx }).eq("id", event.id)
+              siteApi.adminFrom("events").update({ sort_order: idx }).eq("id", event.id)
             )
           );
         }
@@ -148,7 +149,7 @@ export default function EventsManager() {
   const handleDelete = async (id: string) => {
     if (!confirm("Möchten Sie diesen Termin wirklich löschen?")) return;
 
-    const { error } = await siteApi.from("events").delete().eq("id", id);
+    const { error } = await siteApi.adminFrom("events").delete().eq("id", id);
 
     if (error) {
       toast.error("Fehler beim Löschen");
@@ -308,6 +309,7 @@ export default function EventsManager() {
                 </div>
               </CardHeader>
               <CardContent>
+                <PublicationControls table="events" record={event} refresh={fetchEvents} />
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />

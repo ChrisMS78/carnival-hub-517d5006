@@ -73,6 +73,7 @@ function create_account(array $v,?array $actor=null): array {
  $role=$v['role']??'redakteur'; if(!in_array($role,['admin','redakteur','user'],true))fail(400,'Ungültige Rolle.');
  $id=uuid();$name=trim((string)($v['display_name']??''));if(strlen($name)>255)fail(400,'Name zu lang.');
  $username=valid_username($v['username']??username_base($name?:explode('@',$email)[0]));
+ $name=$username; // One visible account name; retain the legacy column for compatibility.
  if(stmt('SELECT id FROM profiles WHERE email=?',[$email])->fetch())fail(409,'Diese E-Mail ist bereits registriert.');
  if(stmt('SELECT id FROM profiles WHERE username=?',[$username])->fetch())fail(409,'Dieser Benutzername ist bereits vergeben.');
  try {stmt('INSERT INTO profiles (id,email,display_name,username,password_hash,last_edit_by,last_edit_at) VALUES (?,?,?,?,?,?,UTC_TIMESTAMP())',[$id,$email,$name,$username,$hash,$actor['username']??$username]);}

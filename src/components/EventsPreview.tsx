@@ -17,6 +17,7 @@ export function EventsPreview() {
       const { data } = await siteApi
         .from("events")
         .select("*")
+        .upcoming()
         .order("sort_order", { ascending: true })
         .limit(3);
 

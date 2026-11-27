@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       about_content: {
         Row: {
+          published?: boolean
           last_edit_by?: string | null
           last_edit_at?: string | null
           content: string | null
@@ -84,6 +85,7 @@ export type Database = {
       }
       events: {
         Row: {
+          published?: boolean
           last_edit_by?: string | null
           last_edit_at?: string | null
           created_at: string | null
@@ -125,6 +127,7 @@ export type Database = {
       }
       gallery_albums: {
         Row: {
+          published?: boolean
           last_edit_by?: string | null
           last_edit_at?: string | null
           cover_image_url: string | null
@@ -224,6 +227,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          last_login_at?: string | null
           last_edit_by?: string | null
           last_edit_at?: string | null
           created_at: string | null

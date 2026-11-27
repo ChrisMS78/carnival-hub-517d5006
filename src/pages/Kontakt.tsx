@@ -19,9 +19,9 @@ export default function Kontakt() {
   const { settings } = useSiteSettings([
     "contact_title",
     "contact_subtitle",
-    "contact_address",
-    "contact_email",
-    "contact_phone",
+    "imprint_address",
+    "imprint_email",
+    "imprint_phone",
   ]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -79,7 +79,7 @@ export default function Kontakt() {
                     <div>
                       <h3 className="font-semibold text-foreground">Adresse</h3>
                       <p className="text-muted-foreground whitespace-pre-line">
-                        {settings.contact_address || "Musterstraße 123\n48329 Bösensell"}
+                        {settings.imprint_address || "Siehe Impressum"}
                       </p>
                     </div>
                   </div>
@@ -90,10 +90,10 @@ export default function Kontakt() {
                     <div>
                       <h3 className="font-semibold text-foreground">E-Mail</h3>
                       <a
-                        href={`mailto:${settings.contact_email || "info@keb-ev.de"}`}
+                        href={`mailto:${settings.imprint_email || "info@keb-ev.de"}`}
                         className="text-primary hover:underline"
                       >
-                        {settings.contact_email || "info@keb-ev.de"}
+                        {settings.imprint_email || "info@keb-ev.de"}
                       </a>
                     </div>
                   </div>
@@ -103,7 +103,7 @@ export default function Kontakt() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Telefon</h3>
-                      <p className="text-muted-foreground">{settings.contact_phone || "+49 123 456789"}</p>
+                      <p className="text-muted-foreground">{settings.imprint_phone || "Siehe Impressum"}</p>
                     </div>
                   </div>
                 </div>

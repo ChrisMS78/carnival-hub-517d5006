@@ -13,9 +13,7 @@ export function usePageBackground(pageKey: string) {
         .eq("page_key", pageKey)
         .single();
 
-      if (!error && data?.background_url) {
-        setBackgroundUrl(data.background_url);
-      }
+      setBackgroundUrl(!error ? data?.background_url || null : null);
       setIsLoading(false);
     };
 

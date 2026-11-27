@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Calendar, Image, FileText, Mail, Home, Settings, Users, ImageIcon } from "lucide-react";
+import { LogOut, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 import EventsManager from "./EventsManager";
 import GalleryManager from "./GalleryManager";
@@ -11,10 +11,12 @@ import ContactManager from "./ContactManager";
 import SiteSettingsManager from "./SiteSettingsManager";
 import UserManager from "./UserManager";
 import PageBackgroundManager from "./PageBackgroundManager";
+import { Overview, TrashManager, AuditManager, OwnPassword } from "./ManagementTools";
+import { BackupManager } from "./BackupManager";
 
 export default function AdminDashboard() {
   const { user, isAdmin, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState("events");
+  const [activeTab, setActiveTab] = useState("overview");
 
   const handleSignOut = async () => {
     await signOut();
@@ -50,41 +52,27 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-3'} lg:w-auto lg:inline-flex`}>
-            <TabsTrigger value="events" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Termine</span>
-            </TabsTrigger>
-            <TabsTrigger value="gallery" className="flex items-center gap-2">
-              <Image className="w-4 h-4" />
-              <span className="hidden sm:inline">Galerie</span>
-            </TabsTrigger>
-            <TabsTrigger value="about" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">Über uns</span>
-            </TabsTrigger>
-            {isAdmin && (
-              <>
-                <TabsTrigger value="backgrounds" className="flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4" />
-                  <span className="hidden sm:inline">Hintergründe</span>
-                </TabsTrigger>
-                <TabsTrigger value="contact" className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  <span className="hidden sm:inline">Nachrichten</span>
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  <span className="hidden sm:inline">Einstellungen</span>
-                </TabsTrigger>
-                <TabsTrigger value="users" className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span className="hidden sm:inline">Benutzer</span>
-                </TabsTrigger>
-              </>
-            )}
+          <TabsList className="flex flex-wrap h-auto justify-start w-full gap-1 p-2">
+            <TabsTrigger value="overview">Übersicht</TabsTrigger>
+            <TabsTrigger value="events">Termine</TabsTrigger>
+            <TabsTrigger value="gallery">Galerie</TabsTrigger>
+            <TabsTrigger value="about">Über uns</TabsTrigger>
+            <TabsTrigger value="trash">Papierkorb</TabsTrigger>
+            <TabsTrigger value="password">Mein Passwort</TabsTrigger>
+            {isAdmin && <>
+              <TabsTrigger value="backgrounds">Hintergründe</TabsTrigger>
+              <TabsTrigger value="contact">Nachrichten</TabsTrigger>
+              <TabsTrigger value="settings">Einstellungen</TabsTrigger>
+              <TabsTrigger value="imprint">Impressum</TabsTrigger>
+              <TabsTrigger value="users">Benutzer</TabsTrigger>
+              <TabsTrigger value="audit">Änderungshistorie</TabsTrigger>
+              <TabsTrigger value="backup">Datensicherung</TabsTrigger>
+            </>}
           </TabsList>
 
+          <TabsContent value="overview"><Overview /></TabsContent>
+          <TabsContent value="trash"><TrashManager isAdmin={isAdmin} /></TabsContent>
+          <TabsContent value="password"><OwnPassword /></TabsContent>
           <TabsContent value="events">
             <EventsManager />
           </TabsContent>
@@ -111,6 +99,9 @@ export default function AdminDashboard() {
                 <SiteSettingsManager />
               </TabsContent>
 
+              <TabsContent value="imprint"><SiteSettingsManager imprint /></TabsContent>
+              <TabsContent value="audit"><AuditManager /></TabsContent>
+              <TabsContent value="backup"><BackupManager /></TabsContent>
               <TabsContent value="users">
                 <UserManager />
               </TabsContent>

@@ -34,6 +34,7 @@ jobs:
         env:
           KEB_DB_PASSWORD: ${{ secrets.KEB_DB_PASSWORD }}
           KEB_SETUP_TOKEN: ${{ secrets.KEB_SETUP_TOKEN }}
+          KEB_BACKUP_TOKEN: ${{ secrets.KEB_BACKUP_TOKEN }}
         run: |
           python3 - <<'PY'
           import os, json, base64
@@ -43,6 +44,10 @@ jobs:
           if not password or len(token) < 32:
               raise SystemExit("Required repository secrets missing or setup token too short")
           config = dict(host="wp678.webpack.hosteurope.de", database="db1137259-keb", username="db1137259-keb", password=password, setup_token=token)
+          backup_token = os.environ.get("KEB_BACKUP_TOKEN", "")
+          if backup_token and len(backup_token) < 32:
+              raise SystemExit("KEB_BACKUP_TOKEN must have at least 32 characters")
+          config["backup_token"] = backup_token
           encoded = base64.b64encode(json.dumps(config).encode()).decode()
           Path("dist/api/config.php").write_text("<?php\nreturn json_decode(base64_decode('" + encoded + "'), true);\n")
           PY

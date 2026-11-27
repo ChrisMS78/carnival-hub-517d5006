@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { usePageBackground } from "@/hooks/usePageBackground";
 import heroImage from "@/assets/hero-carnival.jpg";
 
 export function HeroSection() {
+  const { backgroundUrl } = usePageBackground("home");
   const { settings } = useSiteSettings(["hero_title", "hero_subtitle"]);
 
   return (
@@ -11,7 +13,7 @@ export function HeroSection() {
       {/* Background Image */}
       <div className="absolute inset-0">
         <img
-          src={heroImage}
+          src={backgroundUrl || heroImage}
           alt="Karneval Feier"
           className="w-full h-full object-cover"
         />

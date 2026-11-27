@@ -54,14 +54,14 @@ function album_folder(string $title): string {
 function album_upload(string $albumId): array {
  $actor=require_role(['admin','redakteur']);$f=upload_file();$pdo=db();$pdo->beginTransaction();$files=[];
  try{
-  $a=stmt('SELECT id,folder,next_number FROM gallery_albums WHERE id=? FOR UPDATE',[$albumId])->fetch();if(!$a)fail(404,'Album nicht gefunden.');
+  $a=stmt('SELECT id,folder,next_number FROM gallery_albums WHERE id=? AND deleted_at IS NULL FOR UPDATE',[$albumId])->fetch();if(!$a)fail(404,'Album nicht gefunden.');
   $folder=$a['folder'];$dir=media_dir('bilder/'.$folder);$n=(int)$a['next_number'];
   do{$stem=$folder.'_'.str_pad((string)$n++,3,'0',STR_PAD_LEFT);$large=$dir.'/'.$stem.'.jpg';$small=$dir.'/'.$stem.'_small.jpg';}while(file_exists($large)||file_exists($small));
   $files=[$large,$small];jpg($f['tmp_name'],$large,1600,400000);jpg($f['tmp_name'],$small,900,180000,60);
   $url='/bilder/'.$folder.'/'.$stem.'.jpg';$thumb='/bilder/'.$folder.'/'.$stem.'_small.jpg';$id=uuid();
   $order=(int)stmt('SELECT COALESCE(MAX(sort_order),-1)+1 FROM gallery_images WHERE album_id=?',[$albumId])->fetchColumn();
   stmt('INSERT INTO gallery_images (id,album_id,image_url,thumbnail_url,sort_order,last_edit_by,last_edit_at) VALUES (?,?,?,?,?,?,UTC_TIMESTAMP())',[$id,$albumId,$url,$thumb,$order,$actor['username']]);
-  stmt('UPDATE gallery_albums SET next_number=?,last_edit_by=?,last_edit_at=UTC_TIMESTAMP() WHERE id=?',[$n,$actor['username'],$albumId]);$pdo->commit();
+  stmt('UPDATE gallery_albums SET next_number=?,last_edit_by=?,last_edit_at=UTC_TIMESTAMP() WHERE id=?',[$n,$actor['username'],$albumId]);audit($actor,'upload','gallery_images',$id,$stem.'.jpg');$pdo->commit();
   return ['id'=>$id,'image_url'=>$url,'thumbnail_url'=>$thumb];
  }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();foreach($files as $p)@unlink($p);throw $e;}
 }
@@ -70,7 +70,7 @@ function rebuild_thumbnail(string $id): array {
  $actor=require_role(['admin','redakteur']);
  $pdo=db();$pdo->beginTransaction();$tmp=null;
  try {
-  $row=stmt('SELECT image_url,thumbnail_url,album_id FROM gallery_images WHERE id=? FOR UPDATE',[$id])->fetch();
+  $row=stmt('SELECT image_url,thumbnail_url,album_id FROM gallery_images WHERE id=? AND deleted_at IS NULL AND album_id IN (SELECT id FROM gallery_albums WHERE deleted_at IS NULL) FOR UPDATE',[$id])->fetch();
   if(!$row)fail(404,'Bild nicht gefunden.');
   $url=$row['image_url'];$thumb=$row['thumbnail_url'];
   if(!preg_match('~^/bilder/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+\.jpg$~D',$url)||$thumb!==substr($url,0,-4).'_small.jpg')fail(400,'Ungültiger Bildpfad.');
@@ -81,7 +81,7 @@ function rebuild_thumbnail(string $id): array {
   if(!rename($tmp,$dest))fail(500,'Vorschaubild konnte nicht ersetzt werden.');
   $tmp=null;
   stmt('UPDATE gallery_images SET last_edit_by=?,last_edit_at=UTC_TIMESTAMP() WHERE id=?',[$actor['username'],$id]);stamp_album($row['album_id'],$actor);
-  $pdo->commit();
+  audit($actor,'thumbnail','gallery_images',$id,basename($thumb));$pdo->commit();
   return ['id'=>$id,'thumbnail_url'=>$thumb];
  } catch(Throwable $e) {
   if($pdo->inTransaction())$pdo->rollBack();

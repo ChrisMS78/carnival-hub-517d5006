@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent, DragEvent, FormEvent, MouseEvent } from "react";
 import { siteApi } from "@/lib/siteApi";
 import { LastEdit } from "./LastEdit";
+import { PublicationControls } from "./PublicationControls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +36,8 @@ export default function GalleryManager() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [images, setImages] = useState<GalleryImage[]>([]);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAlbumDialogOpen, setIsAlbumDialogOpen] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
@@ -53,6 +56,7 @@ export default function GalleryManager() {
   }, []);
 
   useEffect(() => {
+    setSelectedImages([]);
     if (selectedAlbum) {
       fetchImages(selectedAlbum.id);
     }
@@ -60,7 +64,7 @@ export default function GalleryManager() {
 
   const fetchAlbums = async () => {
     const { data, error } = await siteApi
-      .from("gallery_albums")
+      .adminFrom("gallery_albums")
       .select("*")
       .order("sort_order", { ascending: true })
       .order("event_date", { ascending: false });
@@ -80,11 +84,11 @@ export default function GalleryManager() {
 
     await Promise.all([
       siteApi
-        .from("gallery_albums")
+        .adminFrom("gallery_albums")
         .update({ sort_order: index - 1 })
         .eq("id", albums[index].id),
       siteApi
-        .from("gallery_albums")
+        .adminFrom("gallery_albums")
         .update({ sort_order: index })
         .eq("id", albums[index - 1].id),
     ]);
@@ -98,11 +102,11 @@ export default function GalleryManager() {
 
     await Promise.all([
       siteApi
-        .from("gallery_albums")
+        .adminFrom("gallery_albums")
         .update({ sort_order: index + 1 })
         .eq("id", albums[index].id),
       siteApi
-        .from("gallery_albums")
+        .adminFrom("gallery_albums")
         .update({ sort_order: index })
         .eq("id", albums[index + 1].id),
     ]);
@@ -112,7 +116,7 @@ export default function GalleryManager() {
 
   const fetchImages = async (albumId: string) => {
     const { data, error } = await siteApi
-      .from("gallery_images")
+      .adminFrom("gallery_images")
       .select("*")
       .eq("album_id", albumId)
       .order("sort_order", { ascending: true });
@@ -121,6 +125,7 @@ export default function GalleryManager() {
       toast.error("Fehler beim Laden der Bilder");
     } else {
       setImages(data || []);
+      setSelectedImages(prev=>prev.filter(id=>(data || []).some(image=>image.id===id)));
     }
   };
 
@@ -150,7 +155,7 @@ export default function GalleryManager() {
 
     if (editingAlbum) {
       const { error } = await siteApi
-        .from("gallery_albums")
+        .adminFrom("gallery_albums")
         .update(albumFormData)
         .eq("id", editingAlbum.id);
 
@@ -162,16 +167,16 @@ export default function GalleryManager() {
       }
     } else {
       const { error } = await siteApi
-        .from("gallery_albums")
-        .insert([{ ...albumFormData, sort_order: -1 }]);
+        .adminFrom("gallery_albums")
+        .insert([{ ...albumFormData, sort_order: -1, published: false }]);
 
       if (error) {
         toast.error("Fehler beim Erstellen");
       } else {
-        toast.success("Album erstellt");
+        toast.success("Album als Entwurf erstellt");
 
         const { data: allAlbums } = await siteApi
-          .from("gallery_albums")
+          .adminFrom("gallery_albums")
           .select("id")
           .order("sort_order", { ascending: true })
           .order("event_date", { ascending: false });
@@ -180,7 +185,7 @@ export default function GalleryManager() {
           await Promise.all(
             allAlbums.map((album, index) =>
               siteApi
-                .from("gallery_albums")
+                .adminFrom("gallery_albums")
                 .update({ sort_order: index })
                 .eq("id", album.id)
             )
@@ -197,18 +202,18 @@ export default function GalleryManager() {
   const handleAlbumDelete = async (id: string) => {
     if (
       !confirm(
-        "Möchten Sie dieses Album wirklich löschen? Alle Bilder werden ebenfalls gelöscht."
+        "Möchten Sie dieses Album wirklich löschen? Das Album und seine Bilder können im Papierkorb wiederhergestellt werden."
       )
     ) {
       return;
     }
 
-    const { error } = await siteApi.from("gallery_albums").delete().eq("id", id);
+    const { error } = await siteApi.adminFrom("gallery_albums").delete().eq("id", id);
 
     if (error) {
       toast.error("Fehler beim Löschen");
     } else {
-      toast.success("Album gelöscht");
+      toast.success("Album in den Papierkorb verschoben");
       if (selectedAlbum?.id === id) {
         setSelectedAlbum(null);
         setImages([]);
@@ -272,18 +277,34 @@ export default function GalleryManager() {
     }
   };
 
+  const deleteSelected = async () => {
+    if (!selectedAlbum || !selectedImages.length || bulkBusy || !confirm(selectedImages.length + " Bilder in den Papierkorb verschieben?")) return;
+    setBulkBusy(true);
+    const ids = [...selectedImages];
+    let failed = false;
+    try {
+      for (let i = 0; i < ids.length; i += 100) {
+        const { error } = await siteApi.adminFrom("gallery_images").delete().in("id", ids.slice(i, i + 100)).eq("album_id", selectedAlbum.id);
+        if (error) { failed = true; toast.error(error.message); break; }
+      }
+      if (!failed) toast.success("Ausgewählte Bilder in den Papierkorb verschoben");
+      setSelectedImages([]);
+      await Promise.all([fetchImages(selectedAlbum.id), fetchAlbums()]);
+    } finally { setBulkBusy(false); }
+  };
+
   const handleImageDelete = async (image: GalleryImage) => {
     if (!confirm("Möchten Sie dieses Bild wirklich löschen?")) return;
 
     const { error } = await siteApi
-      .from("gallery_images")
+      .adminFrom("gallery_images")
       .delete()
       .eq("id", image.id);
 
     if (error) {
       toast.error("Fehler beim Löschen");
     } else {
-      toast.success("Bild gelöscht");
+      toast.success("Bild in den Papierkorb verschoben");
       if (selectedAlbum) await Promise.all([fetchImages(selectedAlbum.id), fetchAlbums()]);
     }
   };
@@ -294,7 +315,7 @@ export default function GalleryManager() {
     const updateResults = await Promise.all(
       orderedImages.map((image, index) =>
         siteApi
-          .from("gallery_images")
+          .adminFrom("gallery_images")
           .update({ sort_order: index })
           .eq("id", image.id)
       )
@@ -507,6 +528,7 @@ export default function GalleryManager() {
                       </Button>
                     </div>
                   </div>
+                  <PublicationControls table="gallery_albums" record={album} refresh={fetchAlbums} />
                 </CardHeader>
               </Card>
             ))
@@ -545,6 +567,7 @@ export default function GalleryManager() {
             )}
           </div>
 
+          {selectedAlbum && images.length > 0 && <div className="flex flex-wrap gap-2 items-center"><Button variant="outline" size="sm" onClick={() => setSelectedImages(selectedImages.length === images.length ? [] : images.map(i => i.id))}>{selectedImages.length === images.length ? "Auswahl aufheben" : "Alle auswählen"}</Button><Button variant="destructive" size="sm" disabled={!selectedImages.length || bulkBusy} onClick={deleteSelected}>{selectedImages.length} ausgewählte löschen</Button></div>}
           {selectedAlbum ? (
             images.length === 0 ? (
               <Card>
@@ -567,6 +590,7 @@ export default function GalleryManager() {
                       draggedImageIndex === index ? "opacity-50" : ""
                     }`}
                   >
+                    <input type="checkbox" checked={selectedImages.includes(image.id)} aria-label={"Bild " + (index + 1) + " auswählen"} className="absolute top-2 left-2 z-20 w-5 h-5 accent-primary" onClick={e => e.stopPropagation()} onChange={e => setSelectedImages(prev => e.target.checked ? [...prev, image.id] : prev.filter(id => id !== image.id))} />
                     <img
                       src={(image.thumbnail_url || image.image_url) + (thumbnailVersion ? `?v=${thumbnailVersion}` : '')}
                       alt={image.caption || ""}
@@ -575,7 +599,7 @@ export default function GalleryManager() {
 
                     <div className="absolute inset-0 rounded-lg bg-black/0 transition-colors group-hover:bg-black/35" />
 
-                    <div className="absolute left-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="absolute left-10 top-2 opacity-0 transition-opacity group-hover:opacity-100">
                       <div className="rounded-md bg-black/60 p-2 text-white">
                         <GripVertical className="h-4 w-4" />
                       </div>

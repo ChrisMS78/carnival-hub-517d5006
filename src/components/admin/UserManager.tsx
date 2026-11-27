@@ -34,7 +34,6 @@ export default function UserManager() {
     email: "",
     password: "",
     password_confirmation: "",
-    display_name: "",
     username: "",
     role: "redakteur" as AppRole,
   });
@@ -48,7 +47,7 @@ export default function UserManager() {
     
     // Fetch profiles
     const { data: profiles, error: profilesError } = await siteApi
-      .from("profiles")
+      .adminFrom("profiles")
       .select("*")
       .order("created_at", { ascending: false });
 
@@ -60,7 +59,7 @@ export default function UserManager() {
 
     // Fetch user roles
     const { data: userRoles, error: rolesError } = await siteApi
-      .from("user_roles")
+      .adminFrom("user_roles")
       .select("*");
 
     if (rolesError) {
@@ -118,7 +117,7 @@ export default function UserManager() {
     const newActiveState = !user.is_active;
     
     const { error } = await siteApi
-      .from("profiles")
+      .adminFrom("profiles")
       .update({ is_active: newActiveState })
       .eq("id", user.id);
 
@@ -131,13 +130,13 @@ export default function UserManager() {
   };
 
   const handleRoleChange = async (user: UserWithRole, newRole: AppRole) => {
-    const { error } = await siteApi.from("user_roles").update({ role: newRole }).eq("user_id", user.id);
+    const { error } = await siteApi.adminFrom("user_roles").update({ role: newRole }).eq("user_id", user.id);
     if (error) toast.error(error.message);
     else { toast.success("Rolle aktualisiert"); fetchUsers(); }
   };
 
   const handleDeleteUser = async (user: UserWithRole) => {
-    if (!confirm(`Möchten Sie den Benutzer "${user.display_name || user.email}" endgültig löschen? Das Konto kann nicht wiederhergestellt werden. Erstellte Inhalte bleiben erhalten.`)) {
+    if (!confirm(`Möchten Sie den Benutzer "${user.username || user.email}" endgültig löschen? Das Konto kann nicht wiederhergestellt werden. Erstellte Inhalte bleiben erhalten.`)) {
       return;
     }
 
@@ -150,7 +149,7 @@ export default function UserManager() {
   };
 
   const resetForm = () => {
-    setFormData({ email: "", password: "", password_confirmation: "", display_name: "", username: "", role: "redakteur" });
+    setFormData({ email: "", password: "", password_confirmation: "", username: "", role: "redakteur" });
     setShowPassword(false);
     setIsDialogOpen(false);
   };
@@ -210,15 +209,6 @@ export default function UserManager() {
               <DialogTitle>Neuen Benutzer erstellen</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateUser} className="space-y-4">
-              <div>
-                <Label htmlFor="display_name">Name</Label>
-                <Input
-                  id="display_name"
-                  value={formData.display_name}
-                  onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                  required
-                />
-              </div>
               <div>
                 <Label htmlFor="username">Benutzername</Label>
                 <Input
@@ -327,10 +317,10 @@ export default function UserManager() {
                       {user.is_active ? <UserCheck className="w-5 h-5" /> : <UserX className="w-5 h-5" />}
                     </div>
                     <div>
-                      <p className="font-medium">{user.display_name || "Kein Name"}</p>
-                      <p className="text-sm text-muted-foreground">Benutzername: {user.username}</p>
+                      <p className="font-medium">{user.username}</p>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
                       <LastEdit record={user} />
+                      <p className="text-xs text-muted-foreground">Letzter Login: {user.last_login_at ? new Date(user.last_login_at.replace(" ", "T") + "Z").toLocaleString("de-DE", { timeZone: "Europe/Berlin" }) : "Noch nicht erfasst"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
@@ -380,7 +370,7 @@ export default function UserManager() {
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Neues Passwort für <strong>{selectedUserForPassword?.display_name || selectedUserForPassword?.email}</strong>
+              Neues Passwort für <strong>{selectedUserForPassword?.username || selectedUserForPassword?.email}</strong>
             </p>
             <div>
               <Label htmlFor="new-password">Neues Passwort</Label>

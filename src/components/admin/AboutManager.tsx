@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { siteApi } from "@/lib/siteApi";
 import { LastEdit } from "./LastEdit";
+import { PublicationControls } from "./PublicationControls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +41,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
   const fetchContents = async () => {
     setIsLoading(true);
     const { data, error } = await siteApi
-      .from("about_content")
+      .adminFrom("about_content")
       .select("*")
       .eq("section_type", activeSection)
       .order("sort_order", { ascending: true });
@@ -108,6 +109,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
 
     const dataToSave = {
       ...formData,
+      published: editingContent ? editingContent.published === true : false,
       pdf_url: pdfUrl,
       pdf_name: pdfName,
       image_url: imageUrl,
@@ -116,7 +118,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
 
     if (editingContent) {
       const { error } = await siteApi
-        .from("about_content")
+        .adminFrom("about_content")
         .update(dataToSave)
         .eq("id", editingContent.id);
 
@@ -127,12 +129,12 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
         fetchContents();
       }
     } else {
-      const { error } = await siteApi.from("about_content").insert([dataToSave]);
+      const { error } = await siteApi.adminFrom("about_content").insert([dataToSave]);
 
       if (error) {
         toast.error("Fehler beim Erstellen");
       } else {
-        toast.success("Inhalt erstellt");
+        toast.success("Inhalt als Entwurf erstellt");
         fetchContents();
       }
     }
@@ -147,7 +149,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
     // Delete PDF from storage if exists
 
 
-    const { error } = await siteApi.from("about_content").delete().eq("id", content.id);
+    const { error } = await siteApi.adminFrom("about_content").delete().eq("id", content.id);
 
     if (error) {
       toast.error("Fehler beim Löschen");
@@ -161,8 +163,8 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
     if (index === 0) return;
     
     await Promise.all([
-      siteApi.from("about_content").update({ sort_order: index - 1 }).eq("id", contents[index].id),
-      siteApi.from("about_content").update({ sort_order: index }).eq("id", contents[index - 1].id),
+      siteApi.adminFrom("about_content").update({ sort_order: index - 1 }).eq("id", contents[index].id),
+      siteApi.adminFrom("about_content").update({ sort_order: index }).eq("id", contents[index - 1].id),
     ]);
     
     fetchContents();
@@ -172,8 +174,8 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
     if (index === contents.length - 1) return;
     
     await Promise.all([
-      siteApi.from("about_content").update({ sort_order: index + 1 }).eq("id", contents[index].id),
-      siteApi.from("about_content").update({ sort_order: index }).eq("id", contents[index + 1].id),
+      siteApi.adminFrom("about_content").update({ sort_order: index + 1 }).eq("id", contents[index].id),
+      siteApi.adminFrom("about_content").update({ sort_order: index }).eq("id", contents[index + 1].id),
     ]);
     
     fetchContents();
@@ -240,6 +242,7 @@ export default function AboutManager({ sectionType }: AboutManagerProps) {
               </div>
             </CardHeader>
             <CardContent>
+              <PublicationControls table="about_content" record={content} refresh={fetchContents} />
               {content.image_url && (
                 <div className="mb-2">
                   <img src={content.image_url} alt={content.title} className="w-full max-w-xs h-24 object-cover rounded" />

@@ -48,37 +48,37 @@ export function Footer() {
 
             <nav className="flex flex-col gap-2">
               <Link
-                to="/ueber-uns"
+                to="/ueber-uns" state={{ scrollToTop: true }}
                 className="text-muted-foreground transition hover:text-primary"
               >
                 Über Uns
               </Link>
 
               <Link
-                to="/termine"
+                to="/termine" state={{ scrollToTop: true }}
                 className="text-muted-foreground transition hover:text-primary"
               >
                 Termine
               </Link>
 
               <Link
-                to="/galerie"
+                to="/galerie" state={{ scrollToTop: true }}
                 className="text-muted-foreground transition hover:text-primary"
               >
                 Galerie
               </Link>
 
               <Link
-                to="/kontakt"
+                to="/kontakt" state={{ scrollToTop: true }}
                 className="text-muted-foreground transition hover:text-primary"
               >
                 Kontakt
               </Link>
 
-              <Link to="/impressum" className="text-muted-foreground transition hover:text-primary">Impressum</Link>
-              <Link to="/datenschutz" className="text-muted-foreground transition hover:text-primary">Datenschutz</Link>
+              <Link to="/impressum" state={{ scrollToTop: true }} className="text-muted-foreground transition hover:text-primary">Impressum</Link>
+              <Link to="/datenschutz" state={{ scrollToTop: true }} className="text-muted-foreground transition hover:text-primary">Datenschutz</Link>
               <Link
-                to="/admin"
+                to="/admin" state={{ scrollToTop: true }}
                 className="text-muted-foreground transition hover:text-primary"
               >
                 Verwaltung

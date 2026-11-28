@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Images, ArrowRight } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { siteApi } from "@/lib/siteApi";
@@ -11,14 +12,13 @@ import type { Tables } from "@/lib/siteTypes";
 type Album = Tables<"gallery_albums">;
 type GalleryImage = Tables<"gallery_images">;
 
-interface AlbumWithImages extends Album {
-  images: GalleryImage[];
+interface AlbumWithPreview extends Album {
+  previewImage: GalleryImage | null;
 }
 
 export default function Galerie() {
-  const [albums, setAlbums] = useState<AlbumWithImages[]>([]);
+  const [albums, setAlbums] = useState<AlbumWithPreview[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const { backgroundUrl } = usePageBackground("galerie");
 
   useEffect(() => {
@@ -38,13 +38,14 @@ export default function Galerie() {
       return;
     }
 
-    const albumsWithImages: AlbumWithImages[] = await Promise.all(
+    const albumsWithPreviews: AlbumWithPreview[] = await Promise.all(
       (albumsData || []).map(async (album) => {
         const { data: imagesData, error: imagesError } = await siteApi
           .from("gallery_images")
           .select("*")
           .eq("album_id", album.id)
-          .order("sort_order", { ascending: true });
+          .order("sort_order", { ascending: true })
+          .limit(1);
 
         if (imagesError) {
           console.error("Error fetching gallery images:", imagesError);
@@ -52,12 +53,12 @@ export default function Galerie() {
 
         return {
           ...album,
-          images: imagesData || [],
+          previewImage: imagesData?.[0] ?? null,
         };
       })
     );
 
-    setAlbums(albumsWithImages);
+    setAlbums(albumsWithPreviews);
     setIsLoading(false);
   };
 
@@ -96,57 +97,49 @@ export default function Galerie() {
             </p>
           </div>
         ) : (
-          <div className="space-y-16">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {albums.map((album) => (
-              <section key={album.id}>
-                <div className="mb-6">
-                  <h2 className="mb-2 text-3xl font-bold">{album.title}</h2>
-
-                  {album.event_date && (
-                    <p className="mb-3 text-lg text-muted-foreground">
-                      {format(new Date(album.event_date), "MMMM yyyy", {
-                        locale: de,
-                      })}
-                    </p>
-                  )}
-
-                  {album.description && (
-                    <p className="text-muted-foreground">
-                      {album.description}
-                    </p>
+              <Link
+                key={album.id}
+                to={`/galerie/${album.id}`}
+                state={{ scrollToTop: true }}
+                aria-label={`Album ${album.title} öffnen`}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-md transition hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                  {album.previewImage ? (
+                    <img
+                      src={album.previewImage.thumbnail_url || album.previewImage.image_url}
+                      alt={album.title}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                      <Images className="h-12 w-12" aria-hidden="true" />
+                      <span className="text-sm">Kein Vorschaubild vorhanden</span>
+                    </div>
                   )}
                 </div>
 
-                {album.images.length === 0 ? (
-                  <p className="text-muted-foreground">
-                    Keine Bilder in diesem Album
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                    {album.images.slice(0, 3).map((img) => (
-                      <button
-                        key={img.id}
-                        type="button"
-                        onClick={() => setSelectedImage(img.image_url)}
-                        className="group overflow-hidden rounded-xl shadow-md transition hover:scale-[1.02] hover:shadow-xl"
-                      >
-                        <img
-                          src={img.thumbnail_url || img.image_url}
-                          alt={img.alt_text || album.title}
-                          className="h-64 w-full object-cover transition group-hover:brightness-90"
-                        />
-                      </button>
-                    ))}
-
-                    <Link
-                      to={`/galerie/${album.id}`}
-                      className="flex h-64 items-center justify-center rounded-xl bg-primary px-6 text-center text-xl font-bold text-primary-foreground shadow-md transition hover:scale-[1.02] hover:shadow-xl"
-                    >
-                      Alle Bilder
-                    </Link>
-                  </div>
-                )}
-              </section>
+                <div className="flex flex-1 flex-col gap-2 p-5">
+                  <h2 className="break-words text-xl font-display font-bold text-foreground transition group-hover:text-primary">
+                    {album.title}
+                  </h2>
+                  {album.event_date && (
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(album.event_date), "MMMM yyyy", { locale: de })}
+                    </p>
+                  )}
+                  {album.description && (
+                    <p className="line-clamp-3 text-sm text-muted-foreground">{album.description}</p>
+                  )}
+                  <span className="mt-auto flex items-center gap-2 pt-3 font-semibold text-primary">
+                    Album öffnen <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                </div>
+              </Link>
             ))}
           </div>
         )}
@@ -154,28 +147,6 @@ export default function Galerie() {
 
       <Footer />
 
-      {selectedImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-          onClick={() => setSelectedImage(null)}
-        >
-          <button
-            type="button"
-            onClick={() => setSelectedImage(null)}
-            className="absolute right-6 top-6 rounded-full bg-white/10 px-4 py-2 text-3xl text-white transition hover:bg-white/20"
-            aria-label="Bild schließen"
-          >
-            ×
-          </button>
-
-          <img
-            src={selectedImage}
-            alt="Galeriebild"
-            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
-            onClick={(event) => event.stopPropagation()}
-          />
-        </div>
-      )}
     </div>
   );
 }
